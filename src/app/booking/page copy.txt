@@ -9,7 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Badge } from "@/components/ui/badge"
-import { Calendar, MapPin, Users, Clock, Check, X, Filter } from "lucide-react"
+import { Calendar, MapPin, Users, Clock, Check, X } from "lucide-react"
 import { format, addDays, isWithinInterval, parseISO } from "date-fns"
 
 interface Asset {
@@ -64,13 +64,6 @@ export default function BookingPage() {
   const [error, setError] = useState("")
   const [success, setSuccess] = useState("")
   const [step, setStep] = useState(1) // 1: Select dates, 2: Select assets, 3: Confirm booking
-
-  // Filter states
-  const [filters, setFilters] = useState({
-    station: "",
-    mediaGroup: "",
-    mediaSubGroup: ""
-  })
 
   useEffect(() => {
     const isAuthenticated = localStorage.getItem("isAuthenticated")
@@ -235,56 +228,9 @@ export default function BookingPage() {
     return stationGroups
   }
 
-  // Get unique values for filter options
-  const getFilterOptions = () => {
-    const stations = [...new Set(availableAssets.map(asset => asset.txtStation))].sort()
-    const mediaGroups = [...new Set(availableAssets.map(asset => asset.txtMediaGroup))].sort()
-    const mediaSubGroups = [...new Set(availableAssets.map(asset => asset.txtMediaSubGroup))].sort()
-    
-    return { stations, mediaGroups, mediaSubGroups }
-  }
-
-  // Apply filters to available assets
-  const getFilteredAssets = () => {
-    return availableAssets.filter(asset => {
-      const matchStation = !filters.station || asset.txtStation === filters.station
-      const matchMediaGroup = !filters.mediaGroup || asset.txtMediaGroup === filters.mediaGroup
-      const matchMediaSubGroup = !filters.mediaSubGroup || asset.txtMediaSubGroup === filters.mediaSubGroup
-      
-      return matchStation && matchMediaGroup && matchMediaSubGroup
-    })
-  }
-
-  // Get filtered assets by station
-  const getFilteredAssetsByStation = () => {
-    const filteredAssets = getFilteredAssets()
-    const stationGroups = filteredAssets.reduce((acc, asset) => {
-      if (!acc[asset.txtStation]) {
-        acc[asset.txtStation] = []
-      }
-      acc[asset.txtStation].push(asset)
-      return acc
-    }, {} as Record<string, Asset[]>)
-
-    return stationGroups
-  }
-
-  // Clear all filters
-  const clearFilters = () => {
-    setFilters({
-      station: "",
-      mediaGroup: "",
-      mediaSubGroup: ""
-    })
-  }
-
   if (!userRole) {
     return <div>Loading...</div>
   }
-
-  const filterOptions = getFilterOptions()
-  const filteredAssetsByStation = getFilteredAssetsByStation()
-  const hasActiveFilters = filters.station || filters.mediaGroup || filters.mediaSubGroup
 
   return (
     <div className="min-h-screen bg-gray-50 p-4">
@@ -410,177 +356,53 @@ export default function BookingPage() {
                   </div>
                 ) : (
                   <div className="space-y-6">
-                    {/* Filter Section */}
-                    <div className="bg-gray-50 p-4 rounded-lg">
-                      <div className="flex items-center justify-between mb-4">
-                        <h3 className="text-lg font-semibold flex items-center gap-2">
-                          <Filter className="w-4 h-4" />
-                          Filter Aset
+                    {Object.entries(getAssetsByStation()).map(([station, stationAssets]) => (
+                      <div key={station}>
+                        <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                          <MapPin className="w-4 h-4" />
+                          {station}
                         </h3>
-                        {hasActiveFilters && (
-                          <Button variant="outline" size="sm" onClick={clearFilters}>
-                            Clear Filters
-                          </Button>
-                        )}
-                      </div>
-                      
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <div className="space-y-2">
-                          <Label>Stasiun</Label>
-                          <Select 
-                            value={filters.station} 
-                            onValueChange={(value) => setFilters(prev => ({ ...prev, station: value }))}
-                          >
-                            <SelectTrigger>
-                              <SelectValue placeholder="Semua Stasiun" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {/* <SelectItem value="">Semua Stasiun</SelectItem> */}
-                              {filterOptions.stations.map((station) => (
-                                <SelectItem key={station} value={station}>
-                                  {station}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
-
-                        <div className="space-y-2">
-                          <Label>Media Group</Label>
-                          <Select 
-                            value={filters.mediaGroup} 
-                            onValueChange={(value) => setFilters(prev => ({ ...prev, mediaGroup: value }))}
-                          >
-                            <SelectTrigger>
-                              <SelectValue placeholder="Semua Media Group" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {/* <SelectItem value="">Semua Media Group</SelectItem> */}
-                              {filterOptions.mediaGroups.map((group) => (
-                                <SelectItem key={group} value={group}>
-                                  {group}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
-
-                        <div className="space-y-2">
-                          <Label>Media Sub Group</Label>
-                          <Select 
-                            value={filters.mediaSubGroup} 
-                            onValueChange={(value) => setFilters(prev => ({ ...prev, mediaSubGroup: value }))}
-                          >
-                            <SelectTrigger>
-                              <SelectValue placeholder="Semua Media Sub Group" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {/* <SelectItem value="">Semua Media Sub Group</SelectItem> */}
-                              {filterOptions.mediaSubGroups.map((subGroup) => (
-                                <SelectItem key={subGroup} value={subGroup}>
-                                  {subGroup}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
-                      </div>
-
-                      {/* Active Filters Display */}
-                      {hasActiveFilters && (
-                        <div className="mt-4 flex flex-wrap gap-2">
-                          {filters.station && (
-                            <Badge variant="secondary" className="flex items-center gap-1">
-                              Stasiun: {filters.station}
-                              <X 
-                                className="w-3 h-3 cursor-pointer" 
-                                onClick={() => setFilters(prev => ({ ...prev, station: "" }))}
-                              />
-                            </Badge>
-                          )}
-                          {filters.mediaGroup && (
-                            <Badge variant="secondary" className="flex items-center gap-1">
-                              Media Group: {filters.mediaGroup}
-                              <X 
-                                className="w-3 h-3 cursor-pointer" 
-                                onClick={() => setFilters(prev => ({ ...prev, mediaGroup: "" }))}
-                              />
-                            </Badge>
-                          )}
-                          {filters.mediaSubGroup && (
-                            <Badge variant="secondary" className="flex items-center gap-1">
-                              Media Sub Group: {filters.mediaSubGroup}
-                              <X 
-                                className="w-3 h-3 cursor-pointer" 
-                                onClick={() => setFilters(prev => ({ ...prev, mediaSubGroup: "" }))}
-                              />
-                            </Badge>
-                          )}
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Results Info */}
-                    <div className="text-sm text-gray-600">
-                      Menampilkan {Object.keys(filteredAssetsByStation).reduce((acc, station) => acc + filteredAssetsByStation[station].length, 0)} aset dari {availableAssets.length} aset tersedia
-                      {hasActiveFilters && " (setelah filter)"}
-                    </div>
-
-                    {/* Filtered Assets by Station */}
-                    {Object.keys(filteredAssetsByStation).length === 0 ? (
-                      <div className="text-center py-8">
-                        <X className="w-12 h-12 text-yellow-500 mx-auto mb-4" />
-                        <p className="text-gray-600">Tidak ada aset yang cocok dengan filter yang dipilih</p>
-                      </div>
-                    ) : (
-                      Object.entries(filteredAssetsByStation).map(([station, stationAssets]) => (
-                        <div key={station}>
-                          <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                            <MapPin className="w-4 h-4" />
-                            {station} ({stationAssets.length} aset)
-                          </h3>
-                          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                            {stationAssets.map((asset) => (
-                              <Card 
-                                key={asset.assetID} 
-                                className={`cursor-pointer transition-all hover:shadow-md ${
-                                  selectedAssets.includes(asset.assetID) 
-                                    ? 'ring-2 ring-blue-500 bg-blue-50' 
-                                    : 'hover:shadow-lg'
-                                }`}
-                                onClick={() => toggleAssetSelection(asset.assetID)}
-                              >
-                                <CardContent className="p-4">
-                                  <div className="flex justify-between items-start mb-2">
-                                    <div>
-                                      <h4 className="font-medium">{asset.txtCode}</h4>
-                                      <p className="text-xs text-gray-500">{asset.kodetitik}</p>
-                                      <p className="text-sm text-gray-600">{asset.txtMediaGroup}</p>
-                                    </div>
-                                    {selectedAssets.includes(asset.assetID) && (
-                                      <Check className="w-5 h-5 text-green-600" />
-                                    )}
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                          {stationAssets.map((asset) => (
+                            <Card 
+                              key={asset.assetID} 
+                              className={`cursor-pointer transition-all hover:shadow-md ${
+                                selectedAssets.includes(asset.assetID) 
+                                  ? 'ring-2 ring-blue-500 bg-blue-50' 
+                                  : 'hover:shadow-lg'
+                              }`}
+                              onClick={() => toggleAssetSelection(asset.assetID)}
+                            >
+                              <CardContent className="p-4">
+                                <div className="flex justify-between items-start mb-2">
+                                  <div>
+                                    <h4 className="font-medium">{asset.txtCode}</h4>
+                                    <p className="text-xs text-gray-500">{asset.kodetitik}</p>
+                                    <p className="text-sm text-gray-600">{asset.txtMediaGroup}</p>
                                   </div>
-                                  <div className="space-y-1">
-                                    <Badge variant="outline" className="text-xs">
-                                      {asset.txtMediaSubGroup}
-                                    </Badge>
-                                    <p className="text-xs text-gray-500">
-                                      Qty: {asset.intQty}
-                                    </p>
-                                  </div>
-                                  {asset.txtDesc && (
-                                    <p className="text-xs text-gray-600 mt-2 line-clamp-2">
-                                      {asset.txtDesc}
-                                    </p>
+                                  {selectedAssets.includes(asset.assetID) && (
+                                    <Check className="w-5 h-5 text-green-600" />
                                   )}
-                                </CardContent>
-                              </Card>
-                            ))}
-                          </div>
+                                </div>
+                                <div className="space-y-1">
+                                  <Badge variant="outline" className="text-xs">
+                                    {asset.txtMediaSubGroup}
+                                  </Badge>
+                                  <p className="text-xs text-gray-500">
+                                    Qty: {asset.intQty}
+                                  </p>
+                                </div>
+                                {asset.txtDesc && (
+                                  <p className="text-xs text-gray-600 mt-2 line-clamp-2">
+                                    {asset.txtDesc}
+                                  </p>
+                                )}
+                              </CardContent>
+                            </Card>
+                          ))}
                         </div>
-                      ))
-                    )}
+                      </div>
+                    ))}
                   </div>
                 )}
 
