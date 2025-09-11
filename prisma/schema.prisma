@@ -1,0 +1,73 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Asset {
+  assetID          String   @id @default(cuid())
+  txtStation       String
+  txtDesc          String?
+  txtCode          String
+  txtMediaGroup    String
+  txtMediaSubGroup String
+  kodetitik        String?
+  intQty           Int
+  lnkMockup        String?
+  numvisualW       String?
+  numvisualH       String?
+  numsizeW         String?
+  numsizeH         String?
+  numsizeD         String?
+  numsizeSQM       String?
+  numweightmedia   String?
+  numweightstructure String?
+  numpoweract      String?
+  numpowerest      String?
+  txtpixelpitch    String?
+  txtnotes         String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  
+  rentDetails      RentDetail[]
+  
+  @@unique([txtCode])
+}
+
+model Client {
+  clientID   Int      @id @default(autoincrement())
+  txtClient  String
+  txtCompany String?
+  txtPhone   String?
+  txtAddress String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  
+  rentDetails RentDetail[]
+  
+  @@unique([txtClient])
+}
+
+model RentDetail {
+  rentid     Int      @id @default(autoincrement())
+  assetID    String
+  clientID   Int
+  datestart  String
+  dateend    String
+  txtsales   String?
+  lnkreport  String?
+  txtnotes   String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  
+  asset      Asset    @relation(fields: [assetID], references: [assetID])
+  client     Client   @relation(fields: [clientID], references: [clientID])
+  
+  @@unique([rentid])
+}
