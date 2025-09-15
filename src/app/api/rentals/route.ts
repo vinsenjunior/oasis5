@@ -42,39 +42,39 @@ export async function POST(request: Request) {
   try {
     const body = await request.json()
     
-    // Check for overlapping rentals
-    const overlappingRental = await db.rentDetail.findFirst({
-      where: {
-        assetID: body.assetID,
-        OR: [
-          {
-            AND: [
-              { datestart: { lte: body.datestart } },
-              { dateend: { gte: body.datestart } }
-            ]
-          },
-          {
-            AND: [
-              { datestart: { lte: body.dateend } },
-              { dateend: { gte: body.dateend } }
-            ]
-          },
-          {
-            AND: [
-              { datestart: { gte: body.datestart } },
-              { dateend: { lte: body.dateend } }
-            ]
-          }
-        ]
-      }
-    })
+    // // Check for overlapping rentals
+    // const overlappingRental = await db.rentDetail.findFirst({
+    //   where: {
+    //     assetID: body.assetID,
+    //     OR: [
+    //       {
+    //         AND: [
+    //           { datestart: { lte: body.datestart } },
+    //           { dateend: { gte: body.datestart } }
+    //         ]
+    //       },
+    //       {
+    //         AND: [
+    //           { datestart: { lte: body.dateend } },
+    //           { dateend: { gte: body.dateend } }
+    //         ]
+    //       },
+    //       {
+    //         AND: [
+    //           { datestart: { gte: body.datestart } },
+    //           { dateend: { lte: body.dateend } }
+    //         ]
+    //       }
+    //     ]
+    //   }
+    // })
     
-    if (overlappingRental) {
-      return NextResponse.json(
-        { error: "Asset sudah disewa untuk periode tersebut" },
-        { status: 400 }
-      )
-    }
+    // if (overlappingRental) {
+    //   return NextResponse.json(
+    //     { error: "Asset sudah disewa untuk periode tersebut" },
+    //     { status: 400 }
+    //   )
+    // }
     
     const rental = await db.rentDetail.create({
       data: {

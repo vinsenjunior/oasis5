@@ -193,7 +193,7 @@ export default function InputRentalPage() {
       })
       setRentalAssets([{ station: "", assetCode: "", mediaGroup: "", mediaSubGroup: "" }])
       
-    } catch (err) {
+    } catch (error) {
       setError("Terjadi kesalahan saat menyimpan data")
     } finally {
       setLoading(false)
