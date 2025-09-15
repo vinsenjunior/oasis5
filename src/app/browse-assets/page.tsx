@@ -353,7 +353,8 @@ export default function BrowseAssetsPage() {
         {/* Asset Detail Modal */}
         {selectedAsset && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-            <Card className="max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <Card className="max-w-xl w-full max-h-[90vh] overflow-y-auto">
+              <img src="/placeholder.jpg" alt="test" className="rounded-t-lg" />
               <CardHeader>
                 <div className="flex justify-between items-start">
                   <div>
@@ -370,62 +371,62 @@ export default function BrowseAssetsPage() {
                   <div className="space-y-3">
                     <div>
                       <Label className="text-sm font-medium">Kode Aset</Label>
-                      <p>{selectedAsset.txtCode}</p>
+                      <p className="text-xs">{selectedAsset.txtCode}</p>
                     </div>
                     <div>
                       <Label className="text-sm font-medium">Kode Titik</Label>
-                      <p>{selectedAsset.kodetitik}</p>
+                      <p className="text-xs">{selectedAsset.kodetitik}</p>
                     </div>
                     <div>
                       <Label className="text-sm font-medium">Media Group</Label>
-                      <p>{selectedAsset.txtMediaGroup}</p>
+                      <p className="text-xs">{selectedAsset.txtMediaGroup}</p>
                     </div>
                     <div>
                       <Label className="text-sm font-medium">Media Sub Group</Label>
-                      <p>{selectedAsset.txtMediaSubGroup}</p>
+                      <p className="text-xs">{selectedAsset.txtMediaSubGroup}</p>
                     </div>
                     <div>
                       <Label className="text-sm font-medium">Quantity</Label>
-                      <p>{selectedAsset.intQty}</p>
+                      <p className="text-xs">{selectedAsset.intQty}</p>
                     </div>
                     <div>
                       <Label className="text-sm font-medium">Visual Width</Label>
-                      <p>{selectedAsset.numvisualW || "-"}</p>
+                      <p className="text-xs">{selectedAsset.numvisualW || "-"}</p>
                     </div>
                     <div>
                       <Label className="text-sm font-medium">Visual Height</Label>
-                      <p>{selectedAsset.numvisualH || "-"}</p>
+                      <p className="text-xs">{selectedAsset.numvisualH || "-"}</p>
                     </div>
                     <div>
                       <Label className="text-sm font-medium">Size Width</Label>
-                      <p>{selectedAsset.numsizeW || "-"}</p>
+                      <p className="text-xs">{selectedAsset.numsizeW || "-"}</p>
                     </div>
                   </div>
                   
                   <div className="space-y-3">
                     <div>
                       <Label className="text-sm font-medium">Size Height</Label>
-                      <p>{selectedAsset.numsizeH || "-"}</p>
+                      <p className="text-xs">{selectedAsset.numsizeH || "-"}</p>
                     </div>
                     <div>
                       <Label className="text-sm font-medium">Size Depth</Label>
-                      <p>{selectedAsset.numsizeD || "-"}</p>
+                      <p className="text-xs">{selectedAsset.numsizeD || "-"}</p>
                     </div>
                     <div>
                       <Label className="text-sm font-medium">Size SQM</Label>
-                      <p>{selectedAsset.numsizeSQM || "-"}</p>
+                      <p className="text-xs">{selectedAsset.numsizeSQM || "-"}</p>
                     </div>
                     <div>
                       <Label className="text-sm font-medium">Weight Media</Label>
-                      <p>{selectedAsset.numweightmedia || "-"}</p>
+                      <p className="text-xs">{selectedAsset.numweightmedia || "-"}</p>
                     </div>
                     <div>
                       <Label className="text-sm font-medium">Weight Structure</Label>
-                      <p>{selectedAsset.numweightstructure || "-"}</p>
+                      <p className="text-xs">{selectedAsset.numweightstructure || "-"}</p>
                     </div>
                     <div>
                       <Label className="text-sm font-medium">Pixel Pitch</Label>
-                      <p>{selectedAsset.txtpixelpitch || "-"}</p>
+                      <p className="text-xs">{selectedAsset.txtpixelpitch || "-"}</p>
                     </div>
                   </div>
                 </div>
@@ -433,14 +434,14 @@ export default function BrowseAssetsPage() {
                 {selectedAsset.txtDesc && (
                   <div className="mt-4">
                     <Label className="text-sm font-medium">Description</Label>
-                    <p className="mt-1">{selectedAsset.txtDesc}</p>
+                    <p className="text-xs">{selectedAsset.txtDesc}</p>
                   </div>
                 )}
                 
                 {selectedAsset.txtnotes && (
                   <div className="mt-4">
                     <Label className="text-sm font-medium">Notes</Label>
-                    <p className="mt-1">{selectedAsset.txtnotes}</p>
+                    <p className="text-xs">{selectedAsset.txtnotes}</p>
                   </div>
                 )}
               </CardContent>
