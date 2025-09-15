@@ -38,7 +38,7 @@ export default function DashboardPage() {
         <div className="flex justify-between items-center mb-8">
           <div>
             <h1 className="text-3xl font-bold">Dashboard</h1>
-            <p className="text-gray-600">Sistem Inventory dan Booking Media Iklan</p>
+            <p className="text-gray-600">O.A.S.I.S</p>
           </div>
           <div className="flex items-center gap-4">
             <Badge variant="outline">{userRole.toUpperCase()}</Badge>
@@ -76,7 +76,7 @@ export default function DashboardPage() {
               <Card className="cursor-pointer hover:shadow-lg transition-shadow" onClick={() => router.push("/input-rental")}>
                 <CardHeader>
                   <CardTitle>Input Data Sewa (Manual)</CardTitle>
-                  <CardDescription>Sharing titik, custom</CardDescription>
+                  <CardDescription>Sharing titik, Digital, custom</CardDescription>
                 </CardHeader>
                 <CardContent>
                   <p className="text-sm text-gray-600">Masukkan data custom sewa aset</p>

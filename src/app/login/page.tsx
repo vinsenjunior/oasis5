@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Alert, AlertDescription } from "@/components/ui/alert"
+import Image from "next/image"
 
 export default function LoginPage() {
   const [username, setUsername] = useState("")
@@ -56,7 +57,17 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-gray-50 p-4">
+    
+    <div className="flex flex-col items-center justify-center min-h-screen bg-blue-800 bg-[00509e] p-4">
+      <div className="space-y-4">
+        <Image src="/o_logo.svg" alt="Otego Logo" width={150} height={150} className="pb-12" />
+      </div>
+      <div className="space-y-4 font-mono text-center text-white mb-8">
+        O.A.S.I.S
+        <div className="text-sm text-white pb-15">
+          Otego Asset, Sales & Inventory System
+        </div>
+      </div>
       <Card className="w-full max-w-md">
         <CardHeader className="space-y-1">
           <CardTitle className="text-2xl font-bold text-center">Login</CardTitle>
@@ -94,9 +105,9 @@ export default function LoginPage() {
               />
             </div>
             <div className="text-sm text-gray-600">
-              <p><strong>Admin:</strong> admin / admin123</p>
+              {/* <p><strong>Admin:</strong> admin / admin123</p>
               <p><strong>Busdev:</strong> busdev / busdev123</p>
-              <p><strong>Tamu:</strong> guest / guest123</p>
+              <p><strong>Tamu:</strong> guest / guest123</p> */}
             </div>
           </CardContent>
           <CardFooter>
