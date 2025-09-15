@@ -52,6 +52,17 @@ export default function DashboardPage() {
           {/* Admin Features */}
           {userRole === "admin" && (
             <>
+              
+              <Card className="cursor-pointer hover:shadow-lg transition-shadow" onClick={() => router.push("/booking")}>
+                <CardHeader>
+                  <CardTitle>Booking Sewa</CardTitle>
+                  <CardDescription>Booking based on availability</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-sm text-gray-600">Booking sewa aset media iklan</p>
+                </CardContent>
+              </Card>
+              
               <Card className="cursor-pointer hover:shadow-lg transition-shadow" onClick={() => router.push("/manage-rentals")}>
                 <CardHeader>
                   <CardTitle>Manajemen Data Sewa</CardTitle>
@@ -62,27 +73,17 @@ export default function DashboardPage() {
                 </CardContent>
               </Card>
 
-              <Card className="cursor-pointer hover:shadow-lg transition-shadow" onClick={() => router.push("/input-asset")}>
-                <CardHeader>
-                  <CardTitle>Input Data Aset</CardTitle>
-                  <CardDescription>Tambah data aset media baru</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-sm text-gray-600">Masukkan data aset media iklan baru</p>
-                </CardContent>
-              </Card>
-
               <Card className="cursor-pointer hover:shadow-lg transition-shadow" onClick={() => router.push("/input-rental")}>
                 <CardHeader>
-                  <CardTitle>Input Data Sewa</CardTitle>
-                  <CardDescription>Tambah data penyewaan baru</CardDescription>
+                  <CardTitle>Input Data Sewa (Manual)</CardTitle>
+                  <CardDescription>Sharing titik, custom</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <p className="text-sm text-gray-600">Masukkan data penyewaan aset media iklan</p>
+                  <p className="text-sm text-gray-600">Masukkan data custom sewa aset</p>
                 </CardContent>
               </Card>
 
-              <Card className="cursor-pointer hover:shadow-lg transition-shadow" onClick={() => router.push("/update-rental")}>
+              {/* <Card className="cursor-pointer hover:shadow-lg transition-shadow" onClick={() => router.push("/update-rental")}>
                 <CardHeader>
                   <CardTitle>Ubah Data Sewa</CardTitle>
                   <CardDescription>Update data penyewaan existing</CardDescription>
@@ -90,7 +91,7 @@ export default function DashboardPage() {
                 <CardContent>
                   <p className="text-sm text-gray-600">Edit data penyewaan yang sudah ada</p>
                 </CardContent>
-              </Card>
+              </Card> */}
 
               <Card className="cursor-pointer hover:shadow-lg transition-shadow" onClick={() => router.push("/input-client")}>
                 <CardHeader>
@@ -104,21 +105,21 @@ export default function DashboardPage() {
             </>
           )}
 
-          {/* Sales Features */}
-          {(userRole === "admin" || userRole === "sales") && (
-            <Card className="cursor-pointer hover:shadow-lg transition-shadow" onClick={() => router.push("/booking")}>
-              <CardHeader>
-                <CardTitle>Booking Aset</CardTitle>
-                <CardDescription>Booking aset media iklan</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm text-gray-600">Lihat status booking dan booking aset yang tersedia</p>
-              </CardContent>
-            </Card>
+          {/* Busdev Features */}
+          {(userRole === "busdev") && (
+               <Card className="cursor-pointer hover:shadow-lg transition-shadow" onClick={() => router.push("/input-asset")}>
+                <CardHeader>
+                  <CardTitle>Input Data Aset</CardTitle>
+                  <CardDescription>Tambah data aset media baru</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-sm text-gray-600">Masukkan data aset media iklan baru</p>
+                </CardContent>
+              </Card>
           )}
 
           {/* Guest Features */}
-          {(userRole === "admin" || userRole === "sales" || userRole === "guest") && (
+          {(userRole === "admin" || userRole === "busdev" || userRole === "guest") && (
             <Card className="cursor-pointer hover:shadow-lg transition-shadow" onClick={() => router.push("/browse-assets")}>
               <CardHeader>
                 <CardTitle>Browse Aset</CardTitle>

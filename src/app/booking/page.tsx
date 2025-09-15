@@ -155,7 +155,7 @@ export default function BookingPage() {
     if (field === "startDate" && value) {
       const startDate = new Date(value)
       const endDate = new Date(startDate)
-      endDate.setDate(startDate.getDate() + 7)
+      endDate.setDate(startDate.getDate() + 30)
       setBookingData(prev => ({ 
         ...prev, 
         endDate: endDate.toISOString().split('T')[0] 

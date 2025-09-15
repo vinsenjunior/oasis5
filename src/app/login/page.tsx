@@ -22,15 +22,20 @@ export default function LoginPage() {
 
     try {
       // Simple authentication logic (in real app, use proper auth)
+      //Admin
       if (username === "admin" && password === "admin123") {
-        localStorage.setItem("userRole", "admin")
+        localStorage.setItem("userRole", "admin") 
         localStorage.setItem("isAuthenticated", "true")
         router.push("/dashboard")
-      } else if (username === "sales" && password === "sales123") {
-        localStorage.setItem("userRole", "sales")
+      } 
+      //Busdev
+        else if (username === "busdev" && password === "busdev123") {
+        localStorage.setItem("userRole", "busdev")
         localStorage.setItem("isAuthenticated", "true")
         router.push("/dashboard")
-      } else if (username === "guest" && password === "guest123") {
+      } 
+      //Guest
+        else if (username === "guest" && password === "guest123") {
         localStorage.setItem("userRole", "guest")
         localStorage.setItem("isAuthenticated", "true")
         router.push("/browse-assets")
@@ -84,7 +89,7 @@ export default function LoginPage() {
             </div>
             <div className="text-sm text-gray-600">
               <p><strong>Admin:</strong> admin / admin123</p>
-              <p><strong>Sales:</strong> sales / sales123</p>
+              <p><strong>Busdev:</strong> busdev / busdev123</p>
               <p><strong>Tamu:</strong> guest / guest123</p>
             </div>
           </CardContent>
