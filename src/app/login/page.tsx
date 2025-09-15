@@ -28,6 +28,12 @@ export default function LoginPage() {
         localStorage.setItem("isAuthenticated", "true")
         router.push("/dashboard")
       } 
+      // SMS
+      else if (username === "sms" && password === "sms123") {
+        localStorage.setItem("userRole", "sms")
+        localStorage.setItem("isAuthenticated", "true")
+        router.push("/dashboard")
+      } 
       //Busdev
         else if (username === "busdev" && password === "busdev123") {
         localStorage.setItem("userRole", "busdev")

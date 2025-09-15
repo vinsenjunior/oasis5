@@ -56,9 +56,11 @@ export default function InputAssetPage() {
     const isAuthenticated = localStorage.getItem("isAuthenticated")
     const role = localStorage.getItem("userRole")
     
-    if (!isAuthenticated || role !== "busdev") {
-      router.push("/login")
-      return
+    if (role !== "admin"){
+      if (!isAuthenticated || role !== "busdev") {
+        router.push("/login")
+        return
+      }
     }
     
     setUserRole(role)

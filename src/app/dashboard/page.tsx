@@ -50,7 +50,7 @@ export default function DashboardPage() {
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {/* Admin Features */}
-          {userRole === "admin" && (
+          {(userRole === "admin" || userRole === "sms") && (
             <>
               
               <Card className="cursor-pointer hover:shadow-lg transition-shadow" onClick={() => router.push("/booking")}>
@@ -62,7 +62,7 @@ export default function DashboardPage() {
                   <p className="text-sm text-gray-600">Booking sewa aset media iklan</p>
                 </CardContent>
               </Card>
-              
+
               <Card className="cursor-pointer hover:shadow-lg transition-shadow" onClick={() => router.push("/manage-rentals")}>
                 <CardHeader>
                   <CardTitle>Manajemen Data Sewa</CardTitle>
@@ -106,7 +106,7 @@ export default function DashboardPage() {
           )}
 
           {/* Busdev Features */}
-          {(userRole === "busdev") && (
+          {(userRole === "busdev" || userRole === "admin") && (
                <Card className="cursor-pointer hover:shadow-lg transition-shadow" onClick={() => router.push("/input-asset")}>
                 <CardHeader>
                   <CardTitle>Input Data Aset</CardTitle>
@@ -119,7 +119,7 @@ export default function DashboardPage() {
           )}
 
           {/* Guest Features */}
-          {(userRole === "admin" || userRole === "busdev" || userRole === "guest") && (
+          {(userRole === "admin" || userRole === "busdev" || userRole === "guest" || userRole === "sms") && (
             <Card className="cursor-pointer hover:shadow-lg transition-shadow" onClick={() => router.push("/browse-assets")}>
               <CardHeader>
                 <CardTitle>Browse Aset</CardTitle>
