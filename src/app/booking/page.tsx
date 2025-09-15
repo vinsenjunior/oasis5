@@ -393,8 +393,8 @@ export default function BookingPage() {
                   <MapPin className="w-5 h-5" />
                   Pilih Aset yang Tersedia
                 </CardTitle>
-                <CardDescription>
-                  {bookingData.startDate} - {bookingData.endDate}
+                <CardDescription className="font-medium text-xs">
+                  Tanggal mulai : {bookingData.startDate}  |  Tanggal akhir : {bookingData.endDate}
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -550,30 +550,39 @@ export default function BookingPage() {
                                 }`}
                                 onClick={() => toggleAssetSelection(asset.assetID)}
                               >
-                                <CardContent className="p-4">
-                                  <div className="flex justify-between items-start mb-2">
+                                
+                              
+                                <CardContent>
+                                 
                                     <div>
-                                      <h4 className="font-medium">{asset.txtCode}</h4>
-                                      <p className="text-xs text-gray-500">{asset.kodetitik}</p>
-                                      <p className="text-sm text-gray-600">{asset.txtMediaGroup}</p>
-                                    </div>
-                                    {selectedAssets.includes(asset.assetID) && (
-                                      <Check className="w-5 h-5 text-green-600" />
-                                    )}
-                                  </div>
-                                  <div className="space-y-1">
-                                    <Badge variant="outline" className="text-xs">
-                                      {asset.txtMediaSubGroup}
-                                    </Badge>
-                                    <p className="text-xs text-gray-500">
+                                      <div className="font-medium text-xl text-gray-400 mb-2">{asset.txtCode}</div>
+                                      {/* <p className="text-xs text-gray-500">{asset.kodetitik}</p> */}
+                                      {/* <p className="text-sm text-gray-600">{asset.txtMediaGroup}</p> */}
+                                      {/* <Badge variant="secondary">{asset.txtMediaGroup}</Badge> */}
+                                   
+                                      <div className="flex justify-between">
+                                        <span className="text-xs">Media Group:</span>
+                                        <Badge variant="secondary">{asset.txtMediaGroup}</Badge>
+                                      </div>
+                                      {selectedAssets.includes(asset.assetID) && (
+                                        <Check className="w-5 h-5 text-green-600" />
+                                         )}
+                                 
+                                      <div className="flex justify-between">
+                                      <span className="text-xs">Media Sub Group:</span>
+                                        <Badge variant="outline" className="text-xs">
+                                          {asset.txtMediaSubGroup}
+                                        </Badge>
+                                  {/*  <p className="text-xs text-gray-500">
                                       Qty: {asset.intQty}
-                                    </p>
+                                    </p> */}
+                                      </div>
                                   </div>
-                                  {asset.txtDesc && (
+                                 {/*  {asset.txtDesc && (
                                     <p className="text-xs text-gray-600 mt-2 line-clamp-2">
                                       {asset.txtDesc}
                                     </p>
-                                  )}
+                                  )} */}
                                 </CardContent>
                               </Card>
                             ))}

@@ -273,7 +273,7 @@ export default function BrowseAssetsPage() {
                 <CardHeader>
                   <div className="flex justify-between items-start">
                     <div>
-                      <CardTitle className="text-lg">{asset.kodetitik}</CardTitle>
+                      <CardTitle className="text-lg">{asset.txtCode}</CardTitle>
                       {/* <CardDescription className="text-xs text-gray-500">{asset.txtCode}</CardDescription> */}
                       <CardDescription>{asset.txtStation}</CardDescription>
                     </div>
@@ -296,10 +296,10 @@ export default function BrowseAssetsPage() {
                       <span className="text-sm font-medium">Sub Group:</span>
                       <Badge variant="outline">{asset.txtMediaSubGroup}</Badge>
                     </div>
-                    <div className="flex justify-between">
+                    {/* <div className="flex justify-between">
                       <span className="text-sm font-medium">Quantity:</span>
                       <span>{asset.intQty}</span>
-                    </div>
+                    </div> */}
                     {asset.txtDesc && (
                       <p className="text-sm text-gray-600 mt-2 line-clamp-2">
                         {asset.txtDesc}
