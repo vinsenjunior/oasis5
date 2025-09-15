@@ -357,7 +357,7 @@ export default function BrowseAssetsPage() {
               <CardHeader>
                 <div className="flex justify-between items-start">
                   <div>
-                    <CardTitle>{selectedAsset.txtCode}</CardTitle>
+                    <CardTitle>{selectedAsset.kodetitik}</CardTitle>
                     <CardDescription>{selectedAsset.txtStation}</CardDescription>
                   </div>
                   <Button variant="outline" onClick={() => setSelectedAsset(null)}>
