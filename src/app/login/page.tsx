@@ -58,11 +58,11 @@ export default function LoginPage() {
 
   return (
     
-    <div className="flex flex-col items-center justify-center min-h-screen bg-blue-800 bg-[00509e] p-4">
+    <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-b from-blue-600 to-blue-800 p-4">
       <div className="space-y-4">
         <Image src="/o_logo.svg" alt="Otego Logo" width={150} height={150} className="pb-12" />
       </div>
-      <div className="space-y-4 font-mono text-center text-white mb-8">
+      <div className="space-y-4 font-mono text-center text-white mb-7">
         O.A.S.I.S
         <div className="text-sm text-white pb-15">
           Otego Asset, Sales & Inventory System
@@ -111,7 +111,7 @@ export default function LoginPage() {
             </div>
           </CardContent>
           <CardFooter>
-            <Button type="submit" className="w-full" disabled={isLoading}>
+            <Button type="submit" className="w-full text-white bg-gradient-to-r from-blue-500 via-blue-600 to-blue-700 hover:bg-gradient-to-br focus:ring-4 focus:outline-none focus:ring-blue-300 dark:focus:ring-blue-800 shadow-lg shadow-blue-500/50 dark:shadow-lg dark:shadow-blue-800/80 font-medium rounded-lg text-sm px-5 py-2.5 text-center me-2 mb-2" disabled={isLoading}>
               {isLoading ? "Loading..." : "Login"}
             </Button>
           </CardFooter>

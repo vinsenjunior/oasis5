@@ -38,11 +38,11 @@ export default function DashboardPage() {
         <div className="flex justify-between items-center mb-8">
           <div>
             <h1 className="text-3xl font-bold">Dashboard</h1>
-            <p className="text-gray-600">O.A.S.I.S</p>
+            <p className="">O.A.S.I.S</p>
           </div>
           <div className="flex items-center gap-4">
-            <Badge variant="outline">{userRole.toUpperCase()}</Badge>
-            <Button variant="outline" onClick={handleLogout}>
+            <Badge variant="outline" className="">{userRole.toUpperCase()}</Badge>
+            <Button variant="" className="bg-blue-800 text-white hover:bg-blue-950" onClick={handleLogout}>
               Logout
             </Button>
           </div>
