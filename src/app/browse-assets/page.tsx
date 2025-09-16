@@ -33,7 +33,7 @@ interface Asset {
   numpowerest: string
   txtpixelpitch: string
   txtnotes: string
-  kodetitik: string
+  
 }
 
 interface FilterOptions {

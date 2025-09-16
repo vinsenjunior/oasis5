@@ -53,6 +53,9 @@ interface Client {
 }
 
 export default function ManageRentalsPage() {
+
+ 
+
   const [userRole, setUserRole] = useState<string | null>(null)
   const router = useRouter()
   
@@ -66,6 +69,11 @@ export default function ManageRentalsPage() {
     station: "",
     status: "all" // all, active, expired
   })
+
+  const [currentPage, setCurrentPage] = useState(1)
+  const [itemsPerPage] = useState(20)
+  // const [loading, setLoading] = useState(true)
+  //const [selectedAsset, setSelectedAsset] = useState<Asset | null>(null)
   
   const [selectedRental, setSelectedRental] = useState<Rental | null>(null)
   const [editingRental, setEditingRental] = useState<Rental | null>(null)
@@ -146,6 +154,7 @@ export default function ManageRentalsPage() {
     }
 
     setFilteredRentals(filtered)
+    setCurrentPage(1)
   }
 
   const handleFilterChange = (key: string, value: string) => {
@@ -159,6 +168,10 @@ export default function ManageRentalsPage() {
       status: "all"
     })
   }
+  // Parameter untuk pagination
+  const totalPages = Math.ceil(filteredRentals.length / itemsPerPage)
+  const startIndex = (currentPage - 1) * itemsPerPage
+  const currentAssets = filteredRentals.slice(startIndex, startIndex + itemsPerPage)
 
   const handleEdit = (rental: Rental) => {
     setEditingRental(rental)
@@ -335,11 +348,15 @@ export default function ManageRentalsPage() {
         {/* Results Section */}
         <div className="mb-4">
           <p className="text-sm text-gray-600">
-            Menampilkan {filteredRentals.length} dari {rentals.length} data sewa
+            Menampilkan {currentAssets.length} dari {rentals.length} data sewa
           </p>
         </div>
 
+
+
+
         {/* Rentals Table */}
+        
         <Card>
           <CardContent className="p-0">
             <div className="overflow-x-auto">
@@ -357,7 +374,7 @@ export default function ManageRentalsPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredRentals.map((rental) => (
+                  {currentAssets.map((rental) => (
                     <TableRow key={rental.rentid}>
                       <TableCell className="font-medium">#{rental.rentid}</TableCell>
                       <TableCell>
@@ -530,6 +547,45 @@ export default function ManageRentalsPage() {
             </div>
           </CardContent>
         </Card>
+
+        {/* Pagination */}
+        {totalPages > 1 && (
+          <div className="mt-8">
+            <Pagination>
+              <PaginationContent>
+                <PaginationItem>
+                  <PaginationPrevious 
+                    onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                    className={currentPage === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                  />
+                </PaginationItem>
+                
+                {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                  const page = i + 1
+                  return (
+                    <PaginationItem key={page}>
+                      <PaginationLink
+                        onClick={() => setCurrentPage(page)}
+                        isActive={currentPage === page}
+                        className="cursor-pointer"
+                      >
+                        {page}
+                      </PaginationLink>
+                    </PaginationItem>
+                  )
+                })}
+                
+                <PaginationItem>
+                  <PaginationNext 
+                    onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                    className={currentPage === totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                  />
+                </PaginationItem>
+              </PaginationContent>
+            </Pagination>
+
+          </div>
+        )}
       </div>
     </div>
   )
