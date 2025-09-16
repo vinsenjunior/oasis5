@@ -15,6 +15,8 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Textarea } from "@/components/ui/textarea"
 import { Edit, Trash2, Eye, Search, Calendar, MapPin, Users } from "lucide-react"
 import { format } from "date-fns"
+import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination"
+
 
 interface Rental {
   rentid: number

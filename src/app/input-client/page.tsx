@@ -28,10 +28,10 @@ export default function InputClientPage() {
     const isAuthenticated = localStorage.getItem("isAuthenticated")
     const role = localStorage.getItem("userRole")
     
-    if (!isAuthenticated || role !== "admin") {
-      router.push("/login")
-      return
-    }
+    // if (!isAuthenticated || role !== "admin" || role!="sms") {
+    //   router.push("/login")
+    //   return
+    // }
     
     setUserRole(role)
   }, [router])

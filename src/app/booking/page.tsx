@@ -76,10 +76,10 @@ export default function BookingPage() {
     const isAuthenticated = localStorage.getItem("isAuthenticated")
     const role = localStorage.getItem("userRole")
     
-    if (!isAuthenticated || (role !== "admin" && role !== "sales")) {
-      router.push("/login")
-      return
-    }
+    // if (!isAuthenticated || (role !== "admin" && role !== "sales")) {
+    //   router.push("/login")
+    //   return
+    // }
     
     setUserRole(role)
     fetchData()
