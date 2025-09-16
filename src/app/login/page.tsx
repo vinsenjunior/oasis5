@@ -62,11 +62,11 @@ export default function LoginPage() {
       <div className="space-y-4">
         <Image src="/o_logo.svg" alt="Otego Logo" width={150} height={150} className="pb-12" />
       </div>
-      <div className="space-y-4 font-mono text-center text-white mb-7">
+      <div className="space-y-4 font-extrabold text-center text-white text-2xl">
         O.A.S.I.S
-        <div className="text-sm text-white pb-15">
-          Otego Asset, Sales & Inventory System
-        </div>
+      </div>
+      <div className="font-mono text-sm text-white pb-15">
+          Otego Asset, Sales & Inventory System  
       </div>
       <Card className="w-full max-w-md">
         <CardHeader className="space-y-1">

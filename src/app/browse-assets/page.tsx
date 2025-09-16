@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardImage, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Badge } from "@/components/ui/badge"
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination"
@@ -353,8 +353,9 @@ export default function BrowseAssetsPage() {
         {/* Asset Detail Modal */}
         {selectedAsset && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-            <Card className="max-w-xl w-full max-h-[90vh] overflow-y-auto">
-              <img src="/placeholder.jpg" alt="test" className="rounded-t-lg" />
+            <CardImage className="max-w-xl w-full max-h-[90vh] overflow-y-auto">
+              {/* <img src="/placeholder.jpg" alt="test" className="rounded-t-lg" /> */}
+              <iframe src="https://drive.google.com/file/d/1pk5GxFI2OxqDlMm-oPc8j6fc1EIOJEMy/preview" className="h-full w-full object-cover rounded-t-lg" ></iframe>
               <CardHeader>
                 <div className="flex justify-between items-start">
                   <div>
@@ -439,13 +440,13 @@ export default function BrowseAssetsPage() {
                 )}
                 
                 {selectedAsset.txtnotes && (
-                  <div className="mt-4">
+                  <div className="mt-4 py-8">
                     <Label className="text-sm font-medium">Notes</Label>
                     <p className="text-xs">{selectedAsset.txtnotes}</p>
                   </div>
                 )}
               </CardContent>
-            </Card>
+            </CardImage>
           </div>
         )}
       </div>

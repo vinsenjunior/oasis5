@@ -231,7 +231,7 @@ export default function DashboardPage() {
 
             {/* Stats Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-              <Card>
+              <Card className="hover:bg-orange-400">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium">Total Aset</CardTitle>
                   <Package className="h-4 w-4 text-muted-foreground" />
@@ -244,7 +244,7 @@ export default function DashboardPage() {
                 </CardContent>
               </Card>
 
-              <Card>
+              <Card className="hover:bg-blue-400">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium">Total Client</CardTitle>
                   <Users className="h-4 w-4 text-muted-foreground" />
@@ -257,7 +257,7 @@ export default function DashboardPage() {
                 </CardContent>
               </Card>
 
-              <Card>
+              <Card className="hover:bg-red-400">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium">Sewa Aktif</CardTitle>
                   <Calendar className="h-4 w-4 text-muted-foreground" />
