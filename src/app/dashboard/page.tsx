@@ -126,7 +126,7 @@ export default function DashboardPage() {
           icon: Edit
         },
         {
-          title: "Tambah Client",
+          title: "Manajemen Client",
           href: "/input-client",
           icon: Users
         }
@@ -166,8 +166,8 @@ export default function DashboardPage() {
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center">
               <img src="/o_logo2.png" className="w-18" alt="Otego Media" />
-              <h1 className="text-xl font-semibold text-gray-900 ml-5">
-                O.A.S.I.S
+              <h1 className="text-xs font-semibold text-gray-900 ml-5">
+                Otego Asset Sales & Inventory System (O.A.S.I.S)
               </h1>
             </div>
             <div className="flex items-center space-x-4">
