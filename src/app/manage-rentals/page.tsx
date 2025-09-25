@@ -147,11 +147,12 @@ export default function ManageRentalsPage() {
     if (filters.status !== "all") {
       const today = new Date()
       if (filters.status === "active") {
-        filtered = filtered.filter(rental => new Date(rental.dateend) >= today)
+        filtered = filtered.filter(rental => new Date(rental.dateend) >= today && new Date(rental.datestart) <= today)
       } else if (filters.status === "expired") {
         filtered = filtered.filter(rental => new Date(rental.dateend) < today)
-      }
-    }
+      } else if (filters.status === "booked") {
+        filtered = filtered.filter(rental => new Date(rental.datestart) > today)
+    }}
 
     setFilteredRentals(filtered)
     setCurrentPage(1)
@@ -237,14 +238,27 @@ export default function ManageRentalsPage() {
     }
   }
 
-  const getStatusBadge = (dateEnd: string) => {
-    const endDate = new Date(dateEnd)
-    const today = new Date()
+  // const getStatusBadge = (dateEnd: string) => {
+  //   const endDate = new Date(dateEnd)
+  //   const today = new Date()
     
-    if (endDate >= today) {
-      return <Badge className="bg-green-100 text-green-800">Active</Badge>
+  //   if (endDate >= today) {
+  //     return <Badge className="bg-green-100 text-green-800">Active</Badge>
+  //   } else {
+  //     return <Badge variant="destructive">Expired</Badge>
+  //   }
+  // }
+  const getStatusBadge = (startDate: string, endDate: string) => {
+    const today = new Date()
+    const start = new Date(startDate)
+    const end = new Date(endDate)
+    
+    if (today < start) {
+      return <Badge className="bg-green-100 text-green-800">Booked</Badge>
+    } else if (today >= start && today <= end) {
+      return <Badge variant="outline">Aktif</Badge>
     } else {
-      return <Badge variant="destructive">Expired</Badge>
+      return <Badge variant="destructive">Selesai</Badge>
     }
   }
 
@@ -330,8 +344,9 @@ export default function ManageRentalsPage() {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">Semua Status</SelectItem>
-                    <SelectItem value="active">Active</SelectItem>
-                    <SelectItem value="expired">Expired</SelectItem>
+                    <SelectItem value="active">Aktif</SelectItem>
+                    <SelectItem value="booked">Booked</SelectItem>
+                    <SelectItem value="expired">Selesai</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -399,7 +414,7 @@ export default function ManageRentalsPage() {
                         </div>
                       </TableCell>
                       <TableCell>{rental.txtsales || "-"}</TableCell>
-                      <TableCell>{getStatusBadge(rental.dateend)}</TableCell>
+                      <TableCell>{getStatusBadge(rental.datestart, rental.dateend)}</TableCell>
                       <TableCell>
                         <div className="flex items-center gap-2">
                           <Dialog>

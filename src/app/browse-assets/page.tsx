@@ -4,19 +4,20 @@ import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Badge } from "@/components/ui/badge"
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination"
-import { Search, Eye } from "lucide-react"
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { Search, Filter, MapPin, Ruler, Zap, Calendar, User, ExternalLink } from "lucide-react"
+import { format } from "date-fns"
 
 interface Asset {
   assetID: string
   txtStation: string
   txtDesc: string
   txtCode: string
-  kodetitik: string
   txtMediaGroup: string
   txtMediaSubGroup: string
   intQty: number
@@ -33,82 +34,114 @@ interface Asset {
   numpowerest: string
   txtpixelpitch: string
   txtnotes: string
-  
 }
 
-interface FilterOptions {
-  stations: string[]
-  mediaGroups: string[]
-  mediaSubGroups: string[]
+interface Rental {
+  rentid: number
+  datestart: string
+  dateend: string
+  txtsales: string
+  txtnotes: string
+  lnkreport: string
+  client: {
+    txtClient: string
+    txtCompany: string
+  }
 }
 
 export default function BrowseAssetsPage() {
-  const [userRole, setUserRole] = useState<string | null>(null)
-  const router = useRouter()
-  
   const [assets, setAssets] = useState<Asset[]>([])
   const [filteredAssets, setFilteredAssets] = useState<Asset[]>([])
-  const [filterOptions, setFilterOptions] = useState<FilterOptions>({
-    stations: [],
-    mediaGroups: [],
-    mediaSubGroups: []
-  })
-  
+  const [stations, setStations] = useState<string[]>([])
+  const [mediaGroups, setMediaGroups] = useState<string[]>([])
+  const [mediaSubGroups, setMediaSubGroups] = useState<string[]>([])
   const [filters, setFilters] = useState({
     station: "",
     mediaGroup: "",
     mediaSubGroup: "",
-    code: ""
+    assetCode: ""
   })
-  
   const [currentPage, setCurrentPage] = useState(1)
-  const [itemsPerPage] = useState(20)
-  const [loading, setLoading] = useState(true)
+  const [isLoading, setIsLoading] = useState(true)
   const [selectedAsset, setSelectedAsset] = useState<Asset | null>(null)
+  const [rentalHistory, setRentalHistory] = useState<Rental[]>([])
+  const [historyLoading, setHistoryLoading] = useState(false)
+  const [historyDialogOpen, setHistoryDialogOpen] = useState(false)
+  const router = useRouter()
+  const itemsPerPage = 20
 
   useEffect(() => {
-    const isAuthenticated = localStorage.getItem("isAuthenticated")
-    const role = localStorage.getItem("userRole")
-    
-    if (!isAuthenticated) {
-      router.push("/login")
-      return
-    }
-    
-    setUserRole(role)
     fetchAssets()
-  }, [router])
+    fetchFilters()
+  }, [])
 
   useEffect(() => {
-    applyFilters()
-  }, [filters, assets])
+    filterAssets()
+  }, [assets, filters])
 
   const fetchAssets = async () => {
     try {
-      setLoading(true)
       const response = await fetch("/api/assets")
-      const assetsData = await response.json()
-      setAssets(assetsData)
-      
-      // Extract filter options
-      const stations = [...new Set(assetsData.map((asset: Asset) => asset.txtStation))]
-      const mediaGroups = [...new Set(assetsData.map((asset: Asset) => asset.txtMediaGroup))]
-      const mediaSubGroups = [...new Set(assetsData.map((asset: Asset) => asset.txtMediaSubGroup))]
-      
-      setFilterOptions({
-        stations,
-        mediaGroups,
-        mediaSubGroups
-      })
-      
-    } catch (error) {
-      console.error("Error fetching assets:", error)
+      if (response.ok) {
+        const data = await response.json()
+        setAssets(data)
+      }
+    } catch (err) {
+      console.error("Error fetching assets:", err)
     } finally {
-      setLoading(false)
+      setIsLoading(false)
     }
   }
 
-  const applyFilters = () => {
+  const fetchFilters = async () => {
+    try {
+      const [stationsRes, groupsRes, subGroupsRes] = await Promise.all([
+        fetch("/api/assets/stations"),
+        fetch("/api/assets/media-groups"),
+        fetch("/api/assets/media-sub-groups")
+      ])
+
+      if (stationsRes.ok) {
+        const stationsData = await stationsRes.json()
+        setStations(stationsData)
+      }
+
+      if (groupsRes.ok) {
+        const groupsData = await groupsRes.json()
+        setMediaGroups(groupsData)
+      }
+
+      if (subGroupsRes.ok) {
+        const subGroupsData = await subGroupsRes.json()
+        setMediaSubGroups(subGroupsData)
+      }
+    } catch (err) {
+      console.error("Error fetching filters:", err)
+    }
+  }
+
+  const fetchRentalHistory = async (assetId: string) => {
+    setHistoryLoading(true)
+    try {
+      const response = await fetch(`/api/assets/${assetId}/rentals`)
+      if (response.ok) {
+        const data = await response.json()
+        setRentalHistory(data)
+      }
+    } catch (err) {
+      console.error("Error fetching rental history:", err)
+    } finally {
+      setHistoryLoading(false)
+    }
+  }
+
+  const handleViewHistory = async (asset: Asset) => {
+    setSelectedAsset(asset)
+    setHistoryDialogOpen(true)
+    await fetchRentalHistory(asset.assetID)
+  }
+
+  const filterAssets = () => {
     let filtered = assets
 
     if (filters.station) {
@@ -123,17 +156,11 @@ export default function BrowseAssetsPage() {
       filtered = filtered.filter(asset => asset.txtMediaSubGroup === filters.mediaSubGroup)
     }
 
-    if (filters.code) {
+    if (filters.assetCode) {
       filtered = filtered.filter(asset => 
-        asset.kodetitik.toLowerCase().includes(filters.code.toLowerCase())
+        asset.txtCode.toLowerCase().includes(filters.assetCode.toLowerCase())
       )
     }
-
-    //   if (filters.code) {
-    //   filtered = filtered.filter(asset => 
-    //     asset.kodetitik.toLowerCase() === filters.code
-    //   )
-    // }
 
     setFilteredAssets(filtered)
     setCurrentPage(1)
@@ -148,22 +175,44 @@ export default function BrowseAssetsPage() {
       station: "",
       mediaGroup: "",
       mediaSubGroup: "",
-      code: ""
+      assetCode: ""
     })
+  }
+
+  const getRentalStatus = (startDate: string, endDate: string) => {
+    const today = new Date()
+    const start = new Date(startDate)
+    const end = new Date(endDate)
+    
+    if (today < start) {
+      return { status: "upcoming", label: "Akan Datang", variant: "secondary" as const }
+    } else if (today >= start && today <= end) {
+      return { status: "active", label: "Aktif", variant: "default" as const }
+    } else {
+      return { status: "completed", label: "Selesai", variant: "outline" as const }
+    }
   }
 
   const totalPages = Math.ceil(filteredAssets.length / itemsPerPage)
   const startIndex = (currentPage - 1) * itemsPerPage
   const currentAssets = filteredAssets.slice(startIndex, startIndex + itemsPerPage)
 
-  if (!userRole) {
-    return <div>Loading...</div>
+  if (isLoading) {
+    return (
+      <div className="container mx-auto p-6">
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900 mx-auto mb-4"></div>
+            <p>Loading assets...</p>
+          </div>
+        </div>
+      </div>
+    )
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-4">
-      <div className="max-w-7xl mx-auto">
-        <div className="flex justify-between items-center mb-8">
+    <div className="container mx-auto p-6">
+         <div className="flex justify-between items-center mb-8">
           <div>
             <h1 className="text-3xl font-bold">Browse Media Assets</h1>
             <p className="text-gray-600">Jelajahi semua aset media iklan yang tersedia</p>
@@ -173,282 +222,362 @@ export default function BrowseAssetsPage() {
           </Button>
         </div>
 
-        {/* Filter Section */}
-        <Card className="mb-6">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Search className="w-5 h-5" />
-              Filter Data Aset
-            </CardTitle>
-            <CardDescription>Cari aset berdasarkan kriteria tertentu</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              <div className="space-y-2">
-                <Label>Station</Label>
-                <Select value={filters.station} onValueChange={(value) => handleFilterChange("station", value)}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Pilih station" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {/* <SelectItem value="">Semua Station</SelectItem> */}
-                    {filterOptions.stations.map((station) => (
-                      <SelectItem key={station} value={station}>
-                        {station}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+      {/* Filter Section */}
+      <Card className="mb-6">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Filter className="h-5 w-5" />
+            Filter Data Aset
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Station</label>
+              <Select value={filters.station} onValueChange={(value) => handleFilterChange("station", value)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Pilih stasiun" />
+                </SelectTrigger>
+                <SelectContent>
+                  {/* <SelectItem value="">Semua Stasiun</SelectItem> */}
+                  {stations.map((station) => (
+                    <SelectItem key={station} value={station}>
+                      {station}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
 
-              <div className="space-y-2">
-                <Label>Media Group</Label>
-                <Select value={filters.mediaGroup} onValueChange={(value) => handleFilterChange("mediaGroup", value)}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Pilih media group" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {/* <SelectItem value="">Semua Media Group</SelectItem> */}
-                    {filterOptions.mediaGroups.map((group) => (
-                      <SelectItem key={group} value={group}>
-                        {group}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Media Group</label>
+              <Select value={filters.mediaGroup} onValueChange={(value) => handleFilterChange("mediaGroup", value)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Pilih media group" />
+                </SelectTrigger>
+                <SelectContent>
+                  {/* <SelectItem value="">Semua Group</SelectItem> */}
+                  {mediaGroups.map((group) => (
+                    <SelectItem key={group} value={group}>
+                      {group}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
 
-              <div className="space-y-2">
-                <Label>Media Sub Group</Label>
-                <Select value={filters.mediaSubGroup} onValueChange={(value) => handleFilterChange("mediaSubGroup", value)}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Pilih media sub group" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {/* <SelectItem value="">Semua Media Sub Group</SelectItem> */}
-                    {filterOptions.mediaSubGroups.map((subGroup) => (
-                      <SelectItem key={subGroup} value={subGroup}>
-                        {subGroup}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Media Sub Group</label>
+              <Select value={filters.mediaSubGroup} onValueChange={(value) => handleFilterChange("mediaSubGroup", value)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Pilih sub group" />
+                </SelectTrigger>
+                <SelectContent>
+                  {/* <SelectItem value="">Semua Sub Group</SelectItem> */}
+                  {mediaSubGroups.map((subGroup) => (
+                    <SelectItem key={subGroup} value={subGroup}>
+                      {subGroup}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
 
-              <div className="space-y-2">
-                <Label>Kode Titik</Label>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Kode Aset</label>
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
                 <Input
-                  placeholder="Cari kode titik..."
-                  value={filters.code}
-                  onChange={(e) => handleFilterChange("code", e.target.value)}
+                  placeholder="Cari kode aset..."
+                  value={filters.assetCode}
+                  onChange={(e) => handleFilterChange("assetCode", e.target.value)}
+                  className="pl-10"
                 />
               </div>
             </div>
-
-            <div className="flex justify-end mt-4">
-              <Button variant="outline" onClick={clearFilters}>
-                Clear Filters
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Results Section */}
-        <div className="mb-4">
-          <p className="text-sm text-gray-600">
-            Menampilkan {currentAssets.length} dari {filteredAssets.length} aset
-          </p>
-        </div>
-
-        {/* Assets Grid */}
-        {loading ? (
-          <div className="text-center py-8">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900 mx-auto"></div>
-            <p className="mt-4 text-gray-600">Loading...</p>
           </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {currentAssets.map((asset) => (
-              <Card key={asset.assetID} className="hover:shadow-lg transition-shadow">
-                <CardHeader>
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <CardTitle className="text-lg">{asset.txtCode}</CardTitle>
-                      {/* <CardDescription className="text-xs text-gray-500">{asset.txtCode}</CardDescription> */}
-                      <CardDescription>{asset.txtStation}</CardDescription>
+
+          <div className="mt-4 flex justify-between items-center">
+            <p className="text-sm text-gray-600">
+              Menampilkan {filteredAssets.length} dari {assets.length} aset
+            </p>
+            <Button variant="outline" size="sm" onClick={clearFilters}>
+              Clear Filters
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Assets Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {currentAssets.map((asset) => (
+          <Card key={asset.assetID} className="overflow-hidden hover:shadow-lg transition-shadow">
+            <div className="aspect-video bg-gray-200 relative">
+              {asset.lnkMockup ? (
+                <img
+                  src={asset.lnkMockup}
+                  alt={asset.txtDesc || asset.txtCode}
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center bg-gray-100">
+                  <span className="text-gray-400">No Image</span>
+                </div>
+              )}
+              <div className="absolute top-2 right-2 flex gap-2">
+                <Badge variant="secondary">{asset.txtCode}</Badge>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-6 px-2 text-xs"
+                  onClick={() => handleViewHistory(asset)}
+                >
+                  History
+                </Button>
+              </div>
+            </div>
+            
+            <CardContent className="p-4">
+              <div className="space-y-1">
+                <div>
+                  <h3 className="font-semibold text-lg">{asset.txtCode}</h3>
+                  {/* <p className="text-sm text-gray-600 line-clamp-2">{asset.txtDesc || "No description available"}</p> */}
+                </div>
+
+                <div className="flex items-center gap-2 text-sm text-gray-600">
+                  <MapPin className="h-4 w-4" />
+                  <span>{asset.txtStation}</span>
+                </div>
+
+                <div className="flex flex-wrap gap-2">
+                  <Badge variant="outline">{asset.txtMediaGroup}</Badge>
+                  <Badge variant="outline">{asset.txtMediaSubGroup}</Badge>
+                </div>
+
+                {/* <div className="grid grid-cols-2 gap-2 text-sm">
+                  {asset.numsizeSQM && (
+                    <div className="flex items-center gap-1">
+                      <Ruler className="h-3 w-3" />
+                      <span>{asset.numsizeSQM} m²</span>
                     </div>
-                    <Button 
-                      variant="outline" 
-                      size="sm"
-                      onClick={() => setSelectedAsset(asset)}
+                  )}
+                  {asset.numpoweract && (
+                    <div className="flex items-center gap-1">
+                      <Zap className="h-3 w-3" />
+                      <span>{asset.numpoweract}W</span>
+                    </div>
+                  )}
+                </div> 
+
+                {asset.txtnotes && (
+                  <p className="text-xs text-gray-500 line-clamp-2">{asset.txtnotes}</p>
+                )}*/}
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
+      {currentAssets.length === 0 && (
+        <div className="text-center py-12">
+          <p className="text-gray-500">Tidak ada aset yang ditemukan dengan filter yang dipilih.</p>
+        </div>
+      )}
+
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <div className="mt-8">
+          <Pagination>
+            <PaginationContent>
+              <PaginationItem>
+                <PaginationPrevious 
+                  onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                  className={currentPage === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                />
+              </PaginationItem>
+              
+              {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                let pageNum
+                if (totalPages <= 5) {
+                  pageNum = i + 1
+                } else if (currentPage <= 3) {
+                  pageNum = i + 1
+                } else if (currentPage >= totalPages - 2) {
+                  pageNum = totalPages - 4 + i
+                } else {
+                  pageNum = currentPage - 2 + i
+                }
+
+                return (
+                  <PaginationItem key={pageNum}>
+                    <PaginationLink
+                      onClick={() => setCurrentPage(pageNum)}
+                      isActive={currentPage === pageNum}
+                      className="cursor-pointer"
                     >
-                      <Eye className="w-4 h-4" />
-                    </Button>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-2">
-                    <div className="flex justify-between">
-                      <span className="text-sm font-medium">Media Group:</span>
-                      <Badge variant="secondary">{asset.txtMediaGroup}</Badge>
+                      {pageNum}
+                    </PaginationLink>
+                  </PaginationItem>
+                )
+              })}
+              
+              <PaginationItem>
+                <PaginationNext 
+                  onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                  className={currentPage === totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                />
+              </PaginationItem>
+            </PaginationContent>
+          </Pagination>
+        </div>
+      )}
+
+      {/* Rental History Dialog */}
+      <Dialog open={historyDialogOpen} onOpenChange={setHistoryDialogOpen}>
+        <DialogContent className="overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Calendar className="h-5 w-5" />
+              Historical Data Sewa - {selectedAsset?.txtCode}
+            </DialogTitle>
+            <DialogDescription>
+              {selectedAsset?.txtStation} - {selectedAsset?.txtMediaGroup} / {selectedAsset?.txtMediaSubGroup}
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4">
+            {/* Asset Info */}
+            {selectedAsset && (
+              <Card>
+                <CardContent className="p-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      {/* <h4 className="font-semibold mb-2">Detail Aset</h4> */}
+                      <div className="space-y-1 text-sm">
+                        <p><span className="font-medium">Kode:</span> {selectedAsset.txtCode}</p>
+                        <p><span className="font-medium">Stasiun:</span> {selectedAsset.txtStation}</p>
+                        <p><span className="font-medium">Media Group:</span> {selectedAsset.txtMediaGroup}</p>
+                        <p><span className="font-medium">Media Sub Group:</span> {selectedAsset.txtMediaSubGroup}</p>
+                        <p><span className="font-medium">Visual Width</span> {selectedAsset.numvisualW} m</p>
+                        <p><span className="font-medium">Visual Height</span> {selectedAsset.numvisualH} m</p>
+                        {selectedAsset.numsizeSQM && (
+                          <p><span className="font-medium">Ukuran:</span> {selectedAsset.numsizeSQM} m²</p>
+                        )}
+                      </div>
                     </div>
-                    <div className="flex justify-between">
-                      <span className="text-sm font-medium">Sub Group:</span>
-                      <Badge variant="outline">{asset.txtMediaSubGroup}</Badge>
+                    <div>
+                      {/* <h4 className="font-semibold mb-2">Gambar Aset</h4> */}
+                      <div className="w-fit h-fit aspect-video bg-gray-200 rounded-lg overflow-hidden">
+                        {selectedAsset.lnkMockup ? (
+                          <img
+                            src={selectedAsset.lnkMockup}
+                            alt={selectedAsset.txtDesc || selectedAsset.txtCode}
+                            className="object-cover"
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center bg-gray-100">
+                            <span className="text-gray-400">No Image Available</span>
+                          </div>
+                        )}
+                      </div>
                     </div>
-                    {/* <div className="flex justify-between">
-                      <span className="text-sm font-medium">Quantity:</span>
-                      <span>{asset.intQty}</span>
-                    </div> */}
-                    {asset.txtDesc && (
-                      <p className="text-sm text-gray-600 mt-2 line-clamp-2">
-                        {asset.txtDesc}
-                      </p>
-                    )}
                   </div>
+                  {/* {selectedAsset.txtDesc && (
+                    <div className="mt-4">
+                      <h4 className="font-semibold mb-1">Deskripsi</h4>
+                      <p className="text-sm text-gray-600">{selectedAsset.txtDesc}</p>
+                    </div>
+                  )} */}
                 </CardContent>
               </Card>
-            ))}
-          </div>
-        )}
+            )}
 
-        {/* Pagination */}
-        {totalPages > 1 && (
-          <div className="mt-8">
-            <Pagination>
-              <PaginationContent>
-                <PaginationItem>
-                  <PaginationPrevious 
-                    onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-                    className={currentPage === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
-                  />
-                </PaginationItem>
-                
-                {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                  const page = i + 1
-                  return (
-                    <PaginationItem key={page}>
-                      <PaginationLink
-                        onClick={() => setCurrentPage(page)}
-                        isActive={currentPage === page}
-                        className="cursor-pointer"
-                      >
-                        {page}
-                      </PaginationLink>
-                    </PaginationItem>
-                  )
-                })}
-                
-                <PaginationItem>
-                  <PaginationNext 
-                    onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
-                    className={currentPage === totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
-                  />
-                </PaginationItem>
-              </PaginationContent>
-            </Pagination>
-          </div>
-        )}
-
-        {/* Asset Detail Modal */}
-        {selectedAsset && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-            <Card className="max-w-xl w-full max-h-[90vh] overflow-y-auto">
-              <img src="/placeholder.jpg" alt="test" className="rounded-t-lg" />
+            {/* Rental History Table */}
+            <Card>
               <CardHeader>
-                <div className="flex justify-between items-start">
-                  <div>
-                    <CardTitle>{selectedAsset.kodetitik}</CardTitle>
-                    <CardDescription>{selectedAsset.txtStation}</CardDescription>
-                  </div>
-                  <Button variant="outline" onClick={() => setSelectedAsset(null)}>
-                    Close
-                  </Button>
-                </div>
+                <CardTitle className="text-lg">Riwayat Penyewaan</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-3">
-                    <div>
-                      <Label className="text-sm font-medium">Kode Aset</Label>
-                      <p className="text-xs">{selectedAsset.txtCode}</p>
-                    </div>
-                    <div>
-                      <Label className="text-sm font-medium">Kode Titik</Label>
-                      <p className="text-xs">{selectedAsset.kodetitik}</p>
-                    </div>
-                    <div>
-                      <Label className="text-sm font-medium">Media Group</Label>
-                      <p className="text-xs">{selectedAsset.txtMediaGroup}</p>
-                    </div>
-                    <div>
-                      <Label className="text-sm font-medium">Media Sub Group</Label>
-                      <p className="text-xs">{selectedAsset.txtMediaSubGroup}</p>
-                    </div>
-                    <div>
-                      <Label className="text-sm font-medium">Quantity</Label>
-                      <p className="text-xs">{selectedAsset.intQty}</p>
-                    </div>
-                    <div>
-                      <Label className="text-sm font-medium">Visual Width</Label>
-                      <p className="text-xs">{selectedAsset.numvisualW || "-"}</p>
-                    </div>
-                    <div>
-                      <Label className="text-sm font-medium">Visual Height</Label>
-                      <p className="text-xs">{selectedAsset.numvisualH || "-"}</p>
-                    </div>
-                    <div>
-                      <Label className="text-sm font-medium">Size Width</Label>
-                      <p className="text-xs">{selectedAsset.numsizeW || "-"}</p>
-                    </div>
+                {historyLoading ? (
+                  <div className="flex items-center justify-center py-8">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
                   </div>
-                  
-                  <div className="space-y-3">
-                    <div>
-                      <Label className="text-sm font-medium">Size Height</Label>
-                      <p className="text-xs">{selectedAsset.numsizeH || "-"}</p>
-                    </div>
-                    <div>
-                      <Label className="text-sm font-medium">Size Depth</Label>
-                      <p className="text-xs">{selectedAsset.numsizeD || "-"}</p>
-                    </div>
-                    <div>
-                      <Label className="text-sm font-medium">Size SQM</Label>
-                      <p className="text-xs">{selectedAsset.numsizeSQM || "-"}</p>
-                    </div>
-                    <div>
-                      <Label className="text-sm font-medium">Weight Media</Label>
-                      <p className="text-xs">{selectedAsset.numweightmedia || "-"}</p>
-                    </div>
-                    <div>
-                      <Label className="text-sm font-medium">Weight Structure</Label>
-                      <p className="text-xs">{selectedAsset.numweightstructure || "-"}</p>
-                    </div>
-                    <div>
-                      <Label className="text-sm font-medium">Pixel Pitch</Label>
-                      <p className="text-xs">{selectedAsset.txtpixelpitch || "-"}</p>
-                    </div>
-                  </div>
-                </div>
-                
-                {selectedAsset.txtDesc && (
-                  <div className="mt-4">
-                    <Label className="text-sm font-medium">Description</Label>
-                    <p className="text-xs">{selectedAsset.txtDesc}</p>
-                  </div>
-                )}
-                
-                {selectedAsset.txtnotes && (
-                  <div className="mt-4">
-                    <Label className="text-sm font-medium">Notes</Label>
-                    <p className="text-xs">{selectedAsset.txtnotes}</p>
+                ) : rentalHistory.length > 0 ? (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Client</TableHead>
+                        <TableHead>Periode</TableHead>
+                        <TableHead>Sales</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead>Report</TableHead>
+                        <TableHead>Catatan</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {rentalHistory.map((rental) => {
+                        const status = getRentalStatus(rental.datestart, rental.dateend)
+                        return (
+                          <TableRow key={rental.rentid}>
+                            <TableCell>
+                              <div>
+                                <p className="font-medium">{rental.client.txtClient}</p>
+                                {rental.client.txtCompany && (
+                                  <p className="text-sm text-gray-500">{rental.client.txtCompany}</p>
+                                )}
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <div className="text-sm">
+                                <p>{format(new Date(rental.datestart), 'dd MMM yyyy')}</p>
+                                <p className="text-gray-500">s/d</p>
+                                <p>{format(new Date(rental.dateend), 'dd MMM yyyy')}</p>
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex items-center gap-1">
+                                <User className="h-3 w-3" />
+                                <span className="text-sm">{rental.txtsales || '-'}</span>
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <Badge variant={status.variant}>{status.label}</Badge>
+                            </TableCell>
+                            <TableCell>
+                              {rental.lnkreport ? (
+                                <a
+                                  href={rental.lnkreport}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="flex items-center gap-1 text-blue-600 hover:text-blue-800 text-sm"
+                                >
+                                  <ExternalLink className="h-3 w-3" />
+                                  Lihat
+                                </a>
+                              ) : (
+                                <span className="text-gray-400 text-sm">-</span>
+                              )}
+                            </TableCell>
+                            <TableCell>
+                              <p className="text-sm max-w-xs truncate" title={rental.txtnotes}>
+                                {rental.txtnotes || '-'}
+                              </p>
+                            </TableCell>
+                          </TableRow>
+                        )
+                      })}
+                    </TableBody>
+                  </Table>
+                ) : (
+                  <div className="text-center py-8 text-gray-500">
+                    Belum ada data penyewaan untuk aset ini
                   </div>
                 )}
               </CardContent>
             </Card>
           </div>
-        )}
-      </div>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
