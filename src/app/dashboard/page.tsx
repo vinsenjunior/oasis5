@@ -14,7 +14,8 @@ import {
   Plus,
   Edit,
   Search,
-  Home
+  Home,
+  CheckCircle
 } from "lucide-react"
 
 interface Stats {
@@ -111,6 +112,12 @@ export default function DashboardPage() {
       return [
         ...baseItems,
         {
+        title: "Check Availability",
+        href: "/check-avail",
+        icon: CheckCircle
+        },
+    
+        {
           title: "Input Data Sewa",
           href: "/booking",
           icon: Calendar
@@ -129,6 +136,11 @@ export default function DashboardPage() {
           title: "Manajemen Client",
           href: "/input-client",
           icon: Users
+        },
+        {
+          title: "Manajemen Aset",
+          href: "/input-asset",
+          icon: Package
         }
       ]
     } else if (userRole === "busdev" || userRole === "admin") {
