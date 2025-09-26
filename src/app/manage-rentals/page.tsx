@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Badge } from "@/components/ui/badge"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger, DialogOverlay } from "@/components/ui/dialog"
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog"
 import { Textarea } from "@/components/ui/textarea"
 import { Edit, Trash2, Eye, Search, Calendar, MapPin, Users } from "lucide-react"
@@ -476,7 +476,7 @@ export default function ManageRentalsPage() {
                             </DialogContent>
                           </Dialog>
 
-                          <Dialog>
+                          {/* <Dialog>
                             <DialogTrigger asChild>
                               <Button variant="outline" size="sm" onClick={() => handleEdit(rental)}>
                                 <Edit className="w-4 h-4" />
@@ -525,7 +525,101 @@ export default function ManageRentalsPage() {
                                 </Button>
                               </DialogFooter>
                             </DialogContent>
+                          </Dialog> */}
+                          
+                          {/* Dialog Edit Data Sewa */}
+
+                          
+                          <Dialog open={!!editingRental} onOpenChange={(open) => !open && setEditingRental(null)}>
+                            <DialogTrigger asChild>
+                              <Button variant="outline" size="sm" onClick={() => handleEdit(rental)}>
+                                <Edit className="w-4 h-4" />
+                              </Button>
+                            </DialogTrigger>
+                            
+                            <DialogContent className="max-w-2xl" onCloseAutoFocus={(e) => {
+                                  e.preventDefault() // cegah scroll ke trigger
+                                }}>
+                              
+                              <DialogHeader>
+                                <DialogTitle>Edit Data Sewa #{editingRental?.rentid}</DialogTitle>
+                                <DialogDescription>
+                                  Update informasi sewa aset
+                                </DialogDescription>
+                              </DialogHeader>
+
+                              <div className="space-y-4">
+                                <div className="space-y-2">
+                                  <Label htmlFor="txtsales">Nama Sales</Label>
+                                  <Input
+                                    id="txtsales"
+                                    value={editForm.txtsales}
+                                    onChange={(e) =>
+                                      setEditForm((prev) => ({ ...prev, txtsales: e.target.value }))
+                                    }
+                                  />
+                                </div>
+
+                                <div className="space-y-2">
+                                  <Label htmlFor="lnkreport">Link Report</Label>
+                                  <Input
+                                    id="lnkreport"
+                                    value={editForm.lnkreport}
+                                    onChange={(e) =>
+                                      setEditForm((prev) => ({ ...prev, lnkreport: e.target.value }))
+                                    }
+                                  />
+                                </div>
+
+                                <div className="space-y-2">
+                                  <Label htmlFor="txtnotes">Catatan</Label>
+                                  <Textarea
+                                    id="txtnotes"
+                                    value={editForm.txtnotes}
+                                    onChange={(e) =>
+                                      setEditForm((prev) => ({ ...prev, txtnotes: e.target.value }))
+                                    }
+                                    rows={3}
+                                  />
+                                </div>
+                              </div>
+
+                              <DialogFooter>
+                                <Button variant="outline" onClick={() => setEditingRental(null)}>
+                                  Batal
+                                </Button>
+
+                                {/* Tombol Update dengan konfirmasi */}
+                                <AlertDialog>
+                                  <AlertDialogTrigger asChild>
+                                    <Button disabled={loading}>
+                                      {loading ? "Loading..." : "Update"}
+                                    </Button>
+                                  </AlertDialogTrigger>
+                                  <AlertDialogContent>
+                                    <AlertDialogHeader>
+                                      <AlertDialogTitle>Konfirmasi Update</AlertDialogTitle>
+                                      <AlertDialogDescription>
+                                        Apakah Anda yakin ingin menyimpan perubahan data sewa ini?
+                                      </AlertDialogDescription>
+                                    </AlertDialogHeader>
+                                    <AlertDialogFooter>
+                                      <AlertDialogCancel>Batal</AlertDialogCancel>
+                                      <AlertDialogAction
+                                        onClick={async () => {
+                                          await handleUpdate()
+                                          setEditingRental(null) // tutup setelah sukses
+                                        }}
+                                      >
+                                        Ya, Simpan
+                                      </AlertDialogAction>
+                                    </AlertDialogFooter>
+                                  </AlertDialogContent>
+                                </AlertDialog>
+                              </DialogFooter>
+                            </DialogContent>
                           </Dialog>
+
 
                           <AlertDialog>
                             <AlertDialogTrigger asChild>

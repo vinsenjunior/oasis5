@@ -184,7 +184,7 @@ export default function CheckAvailabilityPage() {
     if (available) {
       return { status: "available", message: "Tersedia", icon: CheckCircle }
     } else {
-      return { status: "booked", message: "Sudah Dibooking", icon: XCircle }
+      return { status: "booked", message: "Tidak tersedia", icon: XCircle }
     }
   }
 
@@ -354,12 +354,13 @@ export default function CheckAvailabilityPage() {
       value={filters.startDate ? format(filters.startDate, "yyyy-MM-dd") : ""}
       onChange={(e) => {
         const date = e.target.value ? new Date(e.target.value) : undefined
-        setFilters((prev) => ({ ...prev, startDate: date }))
-        if (date && !filters.endDate) {
-          const end = new Date(date)
-          end.setDate(end.getDate() + 7)
-          setFilters((prev) => ({ ...prev, endDate: end }))
-        }
+          if (date) {
+            const end = new Date(date)
+            end.setDate(end.getDate() + 7)
+            setFilters((prev) => ({ ...prev, startDate: date, endDate: end }))
+          } else {
+            setFilters((prev) => ({ ...prev, startDate: undefined, endDate: undefined }))
+          }
       }}
       className="w-full bg-green-50"
     />
