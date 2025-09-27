@@ -18,10 +18,10 @@ model Asset {
   txtMediaGroup    String
   txtMediaSubGroup String
   kodetitik        String?
-  intQty           Int
   lnkMockup        String?
   numvisualW       String?
   numvisualH       String?
+  numvisualSQM     String?
   numsizeW         String?
   numsizeH         String?
   numsizeD         String?
@@ -32,12 +32,15 @@ model Asset {
   numpowerest      String?
   txtpixelpitch    String?
   txtnotes         String?
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
+  stsActive        Boolean
+  lnkTemplate      String?
+  txtlevel         String?
+
+
   
   rentDetails      RentDetail[]
   
-  @@unique([txtCode])
+  @@unique([assetID])
 }
 
 model Client {

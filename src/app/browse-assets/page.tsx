@@ -312,7 +312,7 @@ export default function BrowseAssetsPage() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {currentAssets.map((asset) => (
           <Card key={asset.assetID} className="overflow-hidden hover:shadow-lg transition-shadow">
-            <div className="aspect-video bg-gray-200 relative">
+            <div className="h-fit aspect-video bg-gray-200 relative">
               {asset.lnkMockup ? (
                 <img
                   src={asset.lnkMockup}
