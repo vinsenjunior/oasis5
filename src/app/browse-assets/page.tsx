@@ -189,7 +189,7 @@ export default function BrowseAssetsPage() {
     } else if (today >= start && today <= end) {
       return { status: "active", label: "Aktif", variant: "default" as const }
     } else {
-      return { status: "completed", label: "Selesai", variant: "outline" as const }
+      return { status: "completed", label: "Selesai", variant: "destructive" as const }
     }
   }
 

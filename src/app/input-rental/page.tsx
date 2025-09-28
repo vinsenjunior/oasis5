@@ -251,58 +251,41 @@ export default function InputRentalPage() {
               )}
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-               <div className="space-y-2">
-                    <Label htmlFor="client">Client</Label>
-                    <div className="flex gap-2 w-1/2">
-                      <Popover>
-                        <PopoverTrigger asChild>
-                          <Button
-                            variant="outline"
-                            role="combobox"
-                            className="w-full justify-between"
-                          >
-                            {formData.clientID
-                              ? clients.find(c => c.clientID.toString() === formData.clientID)?.txtClient
-                              : "Pilih atau cari client"}
-                          </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-[300px] p-0">
-                          <Command>
-                            <CommandInput placeholder="Cari client..." />
-                            <CommandEmpty>Client tidak ditemukan.</CommandEmpty>
-                            <CommandGroup>
-                              {clients.map(client => (
-                                <CommandItem
-                                  key={client.clientID}
-                                  value={client.txtClient}
-                                  onSelect={() =>
-                                    handleInputChange("clientID", client.clientID.toString())
-                                  }
-                                >
-                                  {client.txtClient}{" "}
-                                  {client.txtCompany && `(${client.txtCompany})`}
-                                </CommandItem>
-                              ))}
-                            </CommandGroup>
-                          </Command>
-                        </PopoverContent>
-                      </Popover>
-                     <Dialog>
-                      <DialogTrigger asChild>
-                        <Button variant="outline">
-                          <Plus className="w-4 h-4" />
-                        </Button>
-                      </DialogTrigger>
-                      <DialogContent className="w-[70vw] h-[80vh] p-0 overflow-y-auto">
-                        <iframe
-                          src="/input-client"
-                          className="w-full h-full border-0"
-                        />
-                      </DialogContent>
-                    </Dialog>
-                    </div>
-                  </div>
-
+              <div className="space-y-2">
+                <Label>Client</Label>
+                <Command>
+                  <CommandInput 
+                    placeholder="Ketik atau pilih client..." 
+                    onValueChange={(value) => {
+                      // Cari client yang cocok dengan nama atau company
+                      const found = clients.find(
+                        (c) =>
+                          c.txtClient.toLowerCase() === value.toLowerCase() ||
+                          c.txtCompany.toLowerCase() === value.toLowerCase()
+                      )
+                      if (found) {
+                        handleFilterChange("clientID", found.clientID.toString())
+                      } else if (value === "") {
+                        handleFilterChange("clientID", "")
+                      }
+                    }}
+                  />
+                  <CommandList>
+                    <CommandEmpty>Tidak ada client ditemukan</CommandEmpty>
+                    <CommandGroup>
+                      {clients.map((client) => (
+                        <CommandItem
+                          key={client.clientID}
+                          value={client.txtClient}
+                          onSelect={() => handleFilterChange("clientID", client.clientID.toString())}
+                        >
+                          {client.txtClient} {client.txtCompany && `(${client.txtCompany})`}
+                        </CommandItem>
+                      ))}
+                    </CommandGroup>
+                  </CommandList>
+                </Command>
+              </div>
                 <div className="space-y-2">
                   <Label htmlFor="sales">Nama Sales</Label>
                   <Input

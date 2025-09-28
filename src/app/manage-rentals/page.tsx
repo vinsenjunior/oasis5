@@ -13,10 +13,22 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger, DialogOverlay } from "@/components/ui/dialog"
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog"
 import { Textarea } from "@/components/ui/textarea"
-import { Edit, Trash2, Eye, Search, Calendar, MapPin, Users } from "lucide-react"
+import { Edit, Trash2, Eye, Search, Calendar, MapPin, Users,ChevronsUpDown } from "lucide-react"
 import { format } from "date-fns"
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination"
-
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command"
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover"
 
 interface Rental {
   rentid: number
@@ -66,7 +78,8 @@ export default function ManageRentalsPage() {
   const [filters, setFilters] = useState({
     clientID: "",
     station: "",
-    status: "all" // all, active, expired
+    status: "all", // all, active, expired
+    txtCode: ""
   })
 
   const [currentPage, setCurrentPage] = useState(1)
@@ -142,7 +155,14 @@ export default function ManageRentalsPage() {
     if (filters.station) {
       filtered = filtered.filter(rental => rental.asset.txtStation === filters.station)
     }
-
+    
+    if (filters.assetCode) {
+    filtered = filtered.filter((rental) =>
+      rental.asset.txtCode
+        .toLowerCase()
+        .includes(filters.assetCode.toLowerCase())
+    )
+  }
     if (filters.status !== "all") {
       const today = new Date()
       if (filters.status === "active") {
@@ -300,23 +320,46 @@ export default function ManageRentalsPage() {
             <CardDescription>Filter data sewa berdasarkan kriteria tertentu</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-5 gap-4">
               <div className="space-y-2">
                 <Label>Client</Label>
-                <Select value={filters.clientID} onValueChange={(value) => handleFilterChange("clientID", value)}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Pilih client" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {/* <SelectItem value="">Semua Client</SelectItem> */}
-                    {clients.map((client) => (
-                      <SelectItem key={client.clientID} value={client.clientID.toString()}>
-                        {client.txtClient} {client.txtCompany && `(${client.txtCompany})`}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      role="combobox"
+                      className="w-full justify-between"
+                    >
+                      {filters.clientID
+                        ? clients.find((c) => c.clientID.toString() === filters.clientID)?.txtClient
+                        : "Ketik atau pilih client..."}
+                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-[300px] p-0">
+                    <Command>
+                      <CommandInput placeholder="Cari client..." />
+                      <CommandList>
+                        <CommandEmpty>Tidak ada client ditemukan.</CommandEmpty>
+                        <CommandGroup>
+                          {clients.map((client) => (
+                            <CommandItem
+                              key={client.clientID}
+                              value={`${client.txtClient} ${client.txtCompany ?? ""}`}
+                              onSelect={() =>
+                                handleFilterChange("clientID", client.clientID.toString())
+                              }
+                            >
+                              {client.txtClient}{" "}
+                              {client.txtCompany && `(${client.txtCompany})`}
+                            </CommandItem>
+                          ))}
+                        </CommandGroup>
+                      </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
+</div>
 
               <div className="space-y-2">
                 <Label>Stasiun</Label>
@@ -335,6 +378,17 @@ export default function ManageRentalsPage() {
                 </Select>
               </div>
 
+
+              <div className="space-y-2">
+              <Label>Kode Aset</Label>
+              <Input
+                placeholder="Ketik kode aset..."
+                value={filters.assetCode}
+                onChange={(e) => handleFilterChange("assetCode", e.target.value)}
+              />
+            </div>
+
+
               <div className="space-y-2">
                 <Label>Status</Label>
                 <Select value={filters.status} onValueChange={(value) => handleFilterChange("status", value)}>
@@ -351,7 +405,7 @@ export default function ManageRentalsPage() {
               </div>
             </div>
 
-            <div className="flex justify-end mt-4">
+            <div className="flex justify-end">
               <Button variant="outline" onClick={clearFilters}>
                 Clear Filters
               </Button>

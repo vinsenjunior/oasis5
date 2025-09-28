@@ -88,8 +88,12 @@ export default function BookingPage() {
   const [filters, setFilters] = useState({
     station: "",
     mediaGroup: "",
-    mediaSubGroup: ""
+    mediaSubGroup: "",
+    assetCode: ""
   })
+
+  const [currentPage, setCurrentPage] = useState(1)
+  const itemsPerPage = 21
 
   useEffect(() => {
     const isAuthenticated = localStorage.getItem("isAuthenticated")
@@ -264,14 +268,30 @@ export default function BookingPage() {
   }
 
   // Apply filters to available assets
-  const getFilteredAssets = () => {
-    return availableAssets.filter(asset => {
-      const matchStation = !filters.station || asset.txtStation === filters.station
-      const matchMediaGroup = !filters.mediaGroup || asset.txtMediaGroup === filters.mediaGroup
-      const matchMediaSubGroup = !filters.mediaSubGroup || asset.txtMediaSubGroup === filters.mediaSubGroup
+  // const getFilteredAssets = () => {
+  //   return availableAssets.filter(asset => {
+  //     const matchStation = !filters.station || asset.txtStation === filters.station
+  //     const matchMediaGroup = !filters.mediaGroup || asset.txtMediaGroup === filters.mediaGroup
+  //     const matchMediaSubGroup = !filters.mediaSubGroup || asset.txtMediaSubGroup === filters.mediaSubGroup
       
-      return matchStation && matchMediaGroup && matchMediaSubGroup
-    })
+  //     return matchStation && matchMediaGroup && matchMediaSubGroup
+  //   })
+  // }
+  const getFilteredAssets = () => {
+  return availableAssets.filter(asset => {
+    const matchStation = !filters.station || asset.txtStation === filters.station
+    const matchMediaGroup = !filters.mediaGroup || asset.txtMediaGroup === filters.mediaGroup
+    const matchMediaSubGroup = !filters.mediaSubGroup || asset.txtMediaSubGroup === filters.mediaSubGroup
+    const matchAssetCode = !filters.assetCode || asset.txtCode.toLowerCase().includes(filters.assetCode.toLowerCase())
+
+    return matchStation && matchMediaGroup && matchMediaSubGroup && matchAssetCode
+  })
+}
+
+// Pagination helper
+  const paginatedAssets = (assets: Asset[]) => {
+  const start = (currentPage - 1) * itemsPerPage
+    return assets.slice(start, start + itemsPerPage)
   }
 
   // Get filtered assets by station
@@ -293,7 +313,8 @@ export default function BookingPage() {
     setFilters({
       station: "",
       mediaGroup: "",
-      mediaSubGroup: ""
+      mediaSubGroup: "",
+      txtCode: ""
     })
   }
 
@@ -503,6 +524,16 @@ export default function BookingPage() {
                             </SelectContent>
                           </Select>
                         </div>
+
+                        <div className="space-y-2">
+                          <Label>Kode Aset</Label>
+                          <Input
+                            type="text"
+                            placeholder="Cari kode aset..."
+                            value={filters.assetCode}
+                            onChange={(e) => setFilters(prev => ({ ...prev, assetCode: e.target.value }))}
+                          />
+                        </div>
                       </div>
 
                       {/* Active Filters Display */}
@@ -541,25 +572,23 @@ export default function BookingPage() {
 
                     {/* Results Info */}
                     <div className="text-sm text-gray-600">
-                      Menampilkan {Object.keys(filteredAssetsByStation).reduce((acc, station) => acc + filteredAssetsByStation[station].length, 0)} aset dari {availableAssets.length} aset tersedia
+                      Menampilkan {Object.keys(filteredAssetsByStation).reduce((acc, station) => acc + filteredAssetsByStation[station].length, 0)} 
+                      aset dari {availableAssets.length} aset tersedia
                       {hasActiveFilters && " (setelah filter)"}
+                      {" - halaman " + currentPage}
                     </div>
 
-                    {/* Filtered Assets by Station */}
-                    {Object.keys(filteredAssetsByStation).length === 0 ? (
-                      <div className="text-center py-8">
-                        <X className="w-12 h-12 text-yellow-500 mx-auto mb-4" />
-                        <p className="text-gray-600">Tidak ada aset yang cocok dengan filter yang dipilih</p>
-                      </div>
-                    ) : (
-                      Object.entries(filteredAssetsByStation).map(([station, stationAssets]) => (
+                    {/* Render dengan pagination */}
+                    {Object.entries(filteredAssetsByStation).map(([station, stationAssets]) => {
+                      const pageAssets = paginatedAssets(stationAssets)
+                      return (
                         <div key={station}>
                           <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
                             <MapPin className="w-4 h-4" />
                             {station} ({stationAssets.length} aset)
                           </h3>
                           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                            {stationAssets.map((asset) => (
+                            {pageAssets.map(asset =>(
                               <Card 
                                 key={asset.assetID} 
                                 className={`cursor-pointer transition-all hover:shadow-md ${
@@ -604,11 +633,32 @@ export default function BookingPage() {
                                   )} */}
                                 </CardContent>
                               </Card>
-                            ))}
+                              ))}
+                            </div>
                           </div>
-                        </div>
-                      ))
-                    )}
+                        )
+                      })}
+                      <div className="flex justify-center items-center gap-2 mt-4">
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          onClick={() => setCurrentPage(p => Math.max(p - 1, 1))}
+                          disabled={currentPage === 1}
+                        >
+                          Prev
+                        </Button>
+                        <span>Halaman {currentPage}</span>
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          onClick={() => setCurrentPage(p => p + 1)}
+                          disabled={Object.keys(filteredAssetsByStation).every(
+                            station => paginatedAssets(filteredAssetsByStation[station]).length < itemsPerPage
+                          )}
+                        >
+                          Next
+                        </Button>
+                      </div>
                   </div>
                 )}
 
