@@ -24,7 +24,7 @@ export async function GET(request: Request) {
         client: true
       },
       orderBy: {
-        createdAt: "desc"
+        rentid: "desc"
       }
     })
     

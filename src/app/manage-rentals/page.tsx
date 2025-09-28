@@ -27,8 +27,7 @@ interface Rental {
   txtsales: string
   lnkreport: string
   txtnotes: string
-  createdAt: string
-  updatedAt: string
+
   asset: {
     assetID: string
     txtStation: string

@@ -49,12 +49,10 @@ model Client {
   txtCompany String?
   txtPhone   String?
   txtAddress String?
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
   
   rentDetails RentDetail[]
   
-  @@unique([txtClient])
+  @@unique([clientID])
 }
 
 model RentDetail {
@@ -66,8 +64,6 @@ model RentDetail {
   txtsales   String?
   lnkreport  String?
   txtnotes   String?
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
   
   asset      Asset    @relation(fields: [assetID], references: [assetID])
   client     Client   @relation(fields: [clientID], references: [clientID])

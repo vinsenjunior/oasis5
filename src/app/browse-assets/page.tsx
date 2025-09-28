@@ -475,7 +475,7 @@ export default function BrowseAssetsPage() {
                             className="object-cover"
                           />
                         ) : (
-                          <div className="w-full h-full flex items-center justify-center bg-gray-100">
+                          <div className="w-full h-auto flex items-center justify-center bg-gray-100">
                             <span className="text-gray-400">No Image Available</span>
                           </div>
                         )}
