@@ -435,7 +435,8 @@ export default function BookingPage() {
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
+
+                  {/* <div className="space-y-2">
                     <Label>Client</Label>
                     <Select 
                       value={bookingData.clientID} 
@@ -452,7 +453,53 @@ export default function BookingPage() {
                         ))}
                       </SelectContent>
                     </Select>
-                  </div>
+                  </div> */}
+                  
+                  <div className="space-y-2">
+                      <Label htmlFor="client">Client</Label>
+                      <div className="flex gap-2">
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <Button
+                              variant="outline"
+                              role="combobox"
+                              className="w-full justify-between"
+                            >
+                              {formData.clientID
+                                ? clients.find(c => c.clientID.toString() === formData.clientID)?.txtClient
+                                : "Pilih atau cari client"}
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-[300px] p-0">
+                            <Command>
+                              <CommandInput placeholder="Cari client..." />
+                              <CommandEmpty>Client tidak ditemukan.</CommandEmpty>
+                              <CommandGroup>
+                                {clients.map(client => (
+                                  <CommandItem
+                                    key={client.clientID}
+                                    value={client.txtClient}
+                                    onSelect={() =>
+                                      handleInputChange("clientID", client.clientID.toString())
+                                    }
+                                  >
+                                    {client.txtClient}{" "}
+                                    {client.txtCompany && `(${client.txtCompany})`}
+                                  </CommandItem>
+                                ))}
+                              </CommandGroup>
+                            </Command>
+                          </PopoverContent>
+                        </Popover>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={() => router.push("/manage-clients")}
+                        >
+                          <Plus className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    </div>
 
                   <div className="space-y-2">
                     <Label>Nama Sales</Label>

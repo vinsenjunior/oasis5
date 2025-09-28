@@ -11,6 +11,21 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Badge } from "@/components/ui/badge"
 import { Plus, Trash2 } from "lucide-react"
+import {
+  Dialog,
+  DialogContent,
+  DialogTrigger,
+} from "@/components/ui/dialog"
+
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+} from "@/components/ui/command"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+
 
 interface Client {
   clientID: number
@@ -22,7 +37,6 @@ interface Asset {
   assetID: string
   txtStation: string
   txtCode: string
-  kodetitik: string
   txtMediaGroup: string
   txtMediaSubGroup: string
 }
@@ -138,8 +152,8 @@ export default function InputRentalPage() {
 
   const getAssetCodesByStation = (station: string) => {
     return assets.filter(asset => asset.txtStation === station).map(asset => ({
-      code: asset.txtCode,
-      kodetitik: asset.kodetitik
+      code: asset.txtCode
+      // kodetitik: asset.kodetitik
     }))
   }
 
@@ -237,21 +251,57 @@ export default function InputRentalPage() {
               )}
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="client">Client</Label>
-                  <Select value={formData.clientID} onValueChange={(value) => handleInputChange("clientID", value)}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Pilih client" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {clients.map((client) => (
-                        <SelectItem key={client.clientID} value={client.clientID.toString()}>
-                          {client.txtClient} {client.txtCompany && `(${client.txtCompany})`}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
+               <div className="space-y-2">
+                    <Label htmlFor="client">Client</Label>
+                    <div className="flex gap-2 w-1/2">
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button
+                            variant="outline"
+                            role="combobox"
+                            className="w-full justify-between"
+                          >
+                            {formData.clientID
+                              ? clients.find(c => c.clientID.toString() === formData.clientID)?.txtClient
+                              : "Pilih atau cari client"}
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-[300px] p-0">
+                          <Command>
+                            <CommandInput placeholder="Cari client..." />
+                            <CommandEmpty>Client tidak ditemukan.</CommandEmpty>
+                            <CommandGroup>
+                              {clients.map(client => (
+                                <CommandItem
+                                  key={client.clientID}
+                                  value={client.txtClient}
+                                  onSelect={() =>
+                                    handleInputChange("clientID", client.clientID.toString())
+                                  }
+                                >
+                                  {client.txtClient}{" "}
+                                  {client.txtCompany && `(${client.txtCompany})`}
+                                </CommandItem>
+                              ))}
+                            </CommandGroup>
+                          </Command>
+                        </PopoverContent>
+                      </Popover>
+                     <Dialog>
+                      <DialogTrigger asChild>
+                        <Button variant="outline">
+                          <Plus className="w-4 h-4" />
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent className="w-[70vw] h-[80vh] p-0 overflow-y-auto">
+                        <iframe
+                          src="/input-client"
+                          className="w-full h-full border-0"
+                        />
+                      </DialogContent>
+                    </Dialog>
+                    </div>
+                  </div>
 
                 <div className="space-y-2">
                   <Label htmlFor="sales">Nama Sales</Label>
@@ -337,9 +387,9 @@ export default function InputRentalPage() {
                             <SelectValue placeholder="Pilih kode aset" />
                           </SelectTrigger>
                           <SelectContent>
-                            {getAssetCodesByStation(asset.station).map(({ code, kodetitik }) => (
+                            {getAssetCodesByStation(asset.station).map(({ code }) => (
                               <SelectItem key={code} value={code}>
-                                {kodetitik}
+                                {code}
                               </SelectItem>
                             ))}
                           </SelectContent>

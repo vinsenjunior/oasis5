@@ -29,9 +29,10 @@ export async function GET(request: Request) {
     
     const assets = await db.asset.findMany({
       where: Object.keys(where).length > 0 ? where : undefined,
-      orderBy: {
-        txtStation: "asc"
-      }
+      orderBy: [
+        {txtStation: "asc"},
+        {txtCode: "asc"}
+      ]
     })
     
     return NextResponse.json(assets)

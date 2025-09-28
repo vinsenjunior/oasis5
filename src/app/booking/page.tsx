@@ -9,8 +9,27 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Badge } from "@/components/ui/badge"
-import { Calendar, MapPin, Users, Clock, Check, X, Filter } from "lucide-react"
+import { Calendar, MapPin, Users, Clock, X, Filter, Plus, ChevronsUpDown, Check } from "lucide-react"
 import { format, addDays, isWithinInterval, parseISO } from "date-fns"
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover"
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+} from "@/components/ui/command"
+
+import {
+  Dialog,
+  DialogContent,
+  DialogTrigger,
+} from "@/components/ui/dialog"
+
 
 interface Asset {
   assetID: string
@@ -622,7 +641,8 @@ export default function BookingPage() {
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
+
+                  {/* <div className="space-y-2">
                     <Label>Client</Label>
                     <Select 
                       value={bookingData.clientID} 
@@ -639,8 +659,80 @@ export default function BookingPage() {
                         ))}
                       </SelectContent>
                     </Select>
-                  </div>
+                  </div> */}
+                  <div className="space-y-2">
+                      <Label>Client</Label>
+                      <div className="flex gap-2 items-center w-1/2">
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <Button
+                              variant="outline"
+                              role="combobox"
+                              className="w-full justify-between"
+                            >
+                              {bookingData.clientID
+                                ? clients.find((c) => c.clientID.toString() === bookingData.clientID)?.txtClient
+                                : "Pilih atau cari client..."}
+                              <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-[300px] p-0">
+                            <Command>
+                              <CommandInput placeholder="Ketik untuk mencari client..." />
+                              <CommandEmpty>Tidak ada client ditemukan.</CommandEmpty>
+                              <CommandGroup>
+                                {clients.map((client) => (
+                                  <CommandItem
+                                    key={client.clientID}
+                                    value={client.txtClient}
+                                    onSelect={() =>
+                                      setBookingData((prev) => ({
+                                        ...prev,
+                                        clientID: client.clientID.toString(),
+                                      }))
+                                    }
+                                  >
+                                    <Check
+                                      className={`mr-2 h-4 w-4 ${
+                                        bookingData.clientID === client.clientID.toString()
+                                          ? "opacity-100"
+                                          : "opacity-0"
+                                      }`}
+                                    />
+                                    {client.txtClient}{" "}
+                                    {client.txtCompany && `(${client.txtCompany})`}
+                                  </CommandItem>
+                                ))}
+                              </CommandGroup>
+                            </Command>
+                          </PopoverContent>
+                        </Popover>
 
+                        {/* Tombol + ke manage-clients */}
+                        {/* <Button
+                          type="button"
+                          variant="outline"
+                          onClick={() => window.open("/input-client", "_blank")}
+                        >
+                          <Plus className="w-4 h-4" />
+                        </Button> */}
+                        <Dialog>
+                          <DialogTrigger asChild>
+                            <Button variant="outline">
+                              <Plus className="w-4 h-4" />
+                            </Button>
+                          </DialogTrigger>
+                          <DialogContent className="w-[70vw] h-[80vh] p-0 overflow-y-auto">
+                            <iframe
+                              src="/input-client"
+                              className="w-full h-full border-0"
+                            />
+                          </DialogContent>
+                        </Dialog>
+                      </div>
+                    </div>
+
+             
                   <div className="space-y-2">
                     <Label>Nama Sales</Label>
                     <Input
