@@ -363,6 +363,37 @@ export default function ManageRentalsPage() {
     return <div>Loading...</div>
   }
 
+  // Fungsi untuk menghasilkan nomor halaman yang akan ditampilkan
+  const generatePaginationItems = (currentPage: number, totalPages: number) => {
+    // Jika total halaman <= 7, tampilkan semua
+    if (totalPages <= 7) {
+      return Array.from({ length: totalPages }, (_, i) => i + 1)
+    }
+    
+    // Jika halaman aktif di awal (1-4)
+    if (currentPage <= 4) {
+      return [1, 2, 3, 4, 5, 6, '...', totalPages]
+    }
+    
+    // Jika halaman aktif di akhir (total-3 hingga total)
+    if (currentPage >= totalPages - 3) {
+      return [1, '...', totalPages - 5, totalPages - 4, totalPages - 3, totalPages - 2, totalPages - 1, totalPages]
+    }
+    
+    // Jika halaman aktif di tengah
+    return [
+      1, 
+      '...', 
+      currentPage - 2, 
+      currentPage - 1, 
+      currentPage, 
+      currentPage + 1, 
+      currentPage + 2, 
+      '...', 
+      totalPages
+    ]
+  }
+
   return (
     <div className="min-h-screen bg-gray-50 p-4">
       <div className="max-w-7xl mx-auto">
@@ -398,111 +429,101 @@ export default function ManageRentalsPage() {
             <CardDescription>Filter data sewa berdasarkan kriteria tertentu</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-4 gap-4">
-
+            <div className="flex flex-wrap gap-4 items-end">
               {/* Filter Client */}
-              <div className="space-y-2">
-                  <Label>Client</Label>
+              <div className="min-w-[200px] flex-1">
+                <Label className="text-sm">Client</Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      role="combobox"
+                      aria-expanded="false"
+                      className="w-full justify-between mt-1"
+                    >
+                      {filters.clientID
+                        ? clients.find(c => c.clientID.toString() === filters.clientID)?.txtClient
+                        : (clientSearch || "Pilih client...")}
+                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-full max-w-md p-0 max-h-[60vh] overflow-y-auto">
+                    <Command>
+                      <CommandInput
+                        value={clientSearch}
+                        onValueChange={(value) => {
+                          const v = value.trim()
+                          setClientSearch(value)
+                          if (v === "") {
+                            handleFilterChange("clientID", "")
+                            return
+                          }
+                          const exact = clients.find(
+                            (c) =>
+                              c.txtClient.toLowerCase() === v.toLowerCase() ||
+                              c.txtCompany.toLowerCase() === v.toLowerCase()
+                          )
+                          if (exact) {
+                            handleFilterChange("clientID", exact.clientID.toString())
+                          } else {
+                            handleFilterChange("clientID", "")
+                          }
+                        }}
+                        placeholder="Ketik nama client..."
+                      />
+                      <CommandList>
+                        {(() => {
+                          const q = clientSearch.trim().toLowerCase()
+                          const filtered = q
+                            ? clients.filter(
+                                (c) =>
+                                  c.txtClient.toLowerCase().includes(q) ||
+                                  c.txtCompany.toLowerCase().includes(q)
+                              )
+                            : clients
 
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant="outline"
-                        role="combobox"
-                        aria-expanded="false"
-                        className="w-full justify-between"
-                      >
-                        {filters.clientID
-                          ? clients.find(c => c.clientID.toString() === filters.clientID)?.txtClient
-                          : (clientSearch || "Pilih atau ketik client...")}
-                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                      </Button>
-                    </PopoverTrigger>
+                          if (filtered.length === 0) {
+                            return <CommandEmpty>Tidak ada client ditemukan</CommandEmpty>
+                          }
 
-                    <PopoverContent className="w-full max-w-md p-0 max-h-[60vh] overflow-y-auto">
-                      <Command>
-                        <CommandInput
-                          value={clientSearch}
-                          onValueChange={(value) => {
-                            const v = value.trim()
-                            setClientSearch(value)
-                            if (v === "") {
-                              handleFilterChange("clientID", "")
-                              return
-                            }
-                            // jika user mengetik persis nama/company yang ada -> set clientID
-                            const exact = clients.find(
-                              (c) =>
-                                c.txtClient.toLowerCase() === v.toLowerCase() ||
-                                c.txtCompany.toLowerCase() === v.toLowerCase()
-                            )
-                            if (exact) {
-                              handleFilterChange("clientID", exact.clientID.toString())
-                            } else {
-                              // masih mengetik, jangan keep previous client id
-                              handleFilterChange("clientID", "")
-                            }
-                          }}
-                          placeholder="Ketik nama client atau company..."
-                        />
-
-                        <CommandList>
-                          {/* hitung filtered secara manual untuk menghindari fuzzy match */}
-                          {(() => {
-                            const q = clientSearch.trim().toLowerCase()
-                            const filtered = q
-                              ? clients.filter(
-                                  (c) =>
-                                    c.txtClient.toLowerCase().includes(q) ||
-                                    c.txtCompany.toLowerCase().includes(q)
-                                )
-                              : clients
-
-                            if (filtered.length === 0) {
-                              return <CommandEmpty>Tidak ada client ditemukan</CommandEmpty>
-                            }
-
-                            return (
-                              <CommandGroup>
-                                {filtered.map((client) => (
-                                  <CommandItem
-                                    key={client.clientID}
-                                    value={client.txtClient}
-                                    onSelect={() => {
-                                      // pilih client -> set id + tampilkan nama di input
-                                      handleFilterChange("clientID", client.clientID.toString())
-                                      setClientSearch(client.txtClient)
-                                    }}
-                                  >
-                                    <div className="flex flex-col">
-                                      <span>{client.txtClient}</span>
-                                      {client.txtCompany && (
-                                        <span className="text-sm text-muted-foreground">
-                                          {client.txtCompany}
-                                        </span>
-                                      )}
-                                    </div>
-                                  </CommandItem>
-                                ))}
-                              </CommandGroup>
-                            )
-                          })()}
-                        </CommandList>
-                      </Command>
-                    </PopoverContent>
-                  </Popover>
-                </div>
+                          return (
+                            <CommandGroup>
+                              {filtered.map((client) => (
+                                <CommandItem
+                                  key={client.clientID}
+                                  value={client.txtClient}
+                                  onSelect={() => {
+                                    handleFilterChange("clientID", client.clientID.toString())
+                                    setClientSearch(client.txtClient)
+                                  }}
+                                >
+                                  <div className="flex flex-col">
+                                    <span>{client.txtClient}</span>
+                                    {client.txtCompany && (
+                                      <span className="text-sm text-muted-foreground">
+                                        {client.txtCompany}
+                                      </span>
+                                    )}
+                                  </div>
+                                </CommandItem>
+                              ))}
+                            </CommandGroup>
+                          )
+                        })()}
+                      </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
+              </div>
 
               {/* Filter Station */}
-
-              <div className="space-y-2">
-                <Label>Stasiun</Label>
+              <div className="min-w-[150px] flex-1">
+                <Label className="text-sm">Stasiun</Label>
                 <Select value={filters.station} onValueChange={(value) => handleFilterChange("station", value)}>
-                  <SelectTrigger>
+                  <SelectTrigger className="mt-1">
                     <SelectValue placeholder="Pilih stasiun" />
                   </SelectTrigger>
                   <SelectContent>
-                    {/* <SelectItem value="">Semua Stasiun</SelectItem> */}
                     {stations.map((station) => (
                       <SelectItem key={station} value={station}>
                         {station}
@@ -513,24 +534,25 @@ export default function ManageRentalsPage() {
               </div>
 
               {/* Filter Kode Aset */}
-              <div className="space-y-2">
-              <Label>Kode Aset</Label>
-              <Input
-                placeholder="Ketik kode aset..."
-                value={filters.assetCode}
-                onChange={(e) => handleFilterChange("assetCode", e.target.value)}
-              />
-            </div>
+              <div className="min-w-[150px] flex-1">
+                <Label className="text-sm">Kode Aset</Label>
+                <Input
+                  placeholder="Kode aset..."
+                  value={filters.assetCode}
+                  onChange={(e) => handleFilterChange("assetCode", e.target.value)}
+                  className="mt-1"
+                />
+              </div>
 
               {/* Filter Status */}
-              <div className="space-y-2">
-                <Label>Status</Label>
+              <div className="min-w-[150px] flex-1">
+                <Label className="text-sm">Status</Label>
                 <Select value={filters.status} onValueChange={(value) => handleFilterChange("status", value)}>
-                  <SelectTrigger>
+                  <SelectTrigger className="mt-1">
                     <SelectValue placeholder="Pilih status" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">Semua Status</SelectItem>
+                    <SelectItem value="all">Semua</SelectItem>
                     <SelectItem value="active">Aktif</SelectItem>
                     <SelectItem value="booked">Booked</SelectItem>
                     <SelectItem value="expired">Selesai</SelectItem>
@@ -538,62 +560,103 @@ export default function ManageRentalsPage() {
                 </Select>
               </div>
 
-              {/* Filter Periode Tanggal - Baris Baru */}
-              <div className="col-span-4 align-middle space-y-2">
-                <Label>Periode Tanggal</Label>
-                <div className="flex gap-2 items-center">
+             {/* Filter Tanggal */}
+              <div className="min-w-[250px] flex-1 date-picker-container">
+                <Label className="text-sm">Periode Tanggal</Label>
+                <div className="flex gap-1 mt-1">
                   <Input
                     type="date"
                     value={filters.startDate}
                     onChange={(e) => handleFilterChange("startDate", e.target.value)}
-                    className="w-auto"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      // Force show picker
+                      (e.target as HTMLInputElement).showPicker?.();
+                    }}
+                    className="w-full"
+                    // Tambahkan atribut ini
+                    data-testid="start-date"
                   />
-                  <span className="text-gray-500">hingga</span>
+                  <span className="self-center text-gray-500">-</span>
                   <Input
                     type="date"
                     value={filters.endDate}
                     onChange={(e) => {
                       const selectedDate = e.target.value
                       if (filters.startDate && selectedDate < filters.startDate) {
-                        // Tampilkan pesan error atau reset tanggal
                         setError("Tanggal akhir tidak boleh sebelum tanggal mulai")
                         return
                       }
                       handleFilterChange("endDate", selectedDate)
                     }}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      // Force show picker
+                      (e.target as HTMLInputElement).showPicker?.();
+                    }}
                     min={filters.startDate || undefined}
-                    className="w-auto"
+                    className="w-full"
+                    // Tambahkan atribut ini
+                    data-testid="end-date"
                   />
                 </div>
               </div>
 
-              {/* Badge filter tanggal aktif */}
-              <div className="mb-4 flex gap-2">
-                {filters.startDate && filters.endDate && (
-                  <Badge variant="secondary" className="flex items-center gap-1">
-                    <Calendar className="w-3 h-3" />
-                    {format(new Date(filters.startDate), "dd/MM/yyyy")} - {format(new Date(filters.endDate), "dd/MM/yyyy")}
-                  </Badge>
-              )}
-              <p className="text-sm text-gray-600">
-                Menampilkan {currentAssets.length} dari {rentals.length} data sewa
-              </p>
-            </div>
-            </div>
-
-            <div className="flex justify-end">
-              <Button variant="outline" onClick={clearFilters}>
-                Clear Filters
-              </Button>
+              {/* Tombol Clear */}
+              <div>
+                <Button variant="outline" onClick={clearFilters} className="mt-6">
+                  Clear
+                </Button>
+              </div>
             </div>
           </CardContent>
         </Card>
 
         {/* Results Section */}
-        <div className="mb-4">
-          <p className="text-sm text-gray-600">
-            Menampilkan {currentAssets.length} dari {rentals.length} data sewa
-          </p>
+       {/* Indikator Filter Aktif dan badge */}
+        <div className="mb-4 flex flex-wrap gap-2 items-center">
+          {filters.clientID && (
+            <Badge variant="secondary" className="flex items-center gap-1">
+              <Users className="w-3 h-3" />
+              Client: {clients.find(c => c.clientID.toString() === filters.clientID)?.txtClient}
+            </Badge>
+          )}
+          
+          {filters.station && (
+            <Badge variant="secondary" className="flex items-center gap-1">
+              <MapPin className="w-3 h-3" />
+              Stasiun: {filters.station}
+            </Badge>
+          )}
+          
+          {filters.assetCode && (
+            <Badge variant="secondary" className="flex items-center gap-1">
+              Kode: {filters.assetCode}
+            </Badge>
+          )}
+          
+          {filters.status !== "all" && (
+            <Badge variant="secondary" className="flex items-center gap-1">
+              Status: {filters.status === "active" ? "Aktif" : filters.status === "booked" ? "Booked" : "Selesai"}
+            </Badge>
+          )}
+          
+          {filters.startDate && filters.endDate && (
+            <Badge variant="secondary" className="flex items-center gap-1">
+              <Calendar className="w-3 h-3" />
+              {format(new Date(filters.startDate), "dd/MM/yyyy")} - {format(new Date(filters.endDate), "dd/MM/yyyy")}
+            </Badge>
+          )}
+          <div className="flex items-center gap-2 ml-auto">
+            <p className="text-sm text-gray-600">
+              Menampilkan {currentAssets.length} dari {filteredRentals.length} data sewa
+            </p>
+            {totalPages > 1 && (
+              <Badge variant="outline">
+                Halaman {currentPage} dari {totalPages}
+              </Badge>
+            )}
+          </div>
         </div>
 
 
@@ -940,8 +1003,15 @@ export default function ManageRentalsPage() {
                   />
                 </PaginationItem>
                 
-                {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                  const page = i + 1
+                {generatePaginationItems(currentPage, totalPages).map((page, index) => {
+                  if (page === '...') {
+                    return (
+                      <PaginationItem key={`ellipsis-${index}`}>
+                        <span className="px-2">...</span>
+                      </PaginationItem>
+                    )
+                  }
+                  
                   return (
                     <PaginationItem key={page}>
                       <PaginationLink
@@ -963,7 +1033,6 @@ export default function ManageRentalsPage() {
                 </PaginationItem>
               </PaginationContent>
             </Pagination>
-
           </div>
         )}
       </div>
