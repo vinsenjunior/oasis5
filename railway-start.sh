@@ -1,6 +1,4 @@
 #!/bin/sh
-# Make this script executable if it isn't already
-[ ! -x "$0" ] && chmod +x "$0"
 
 # Rest of your script...
 mkdir -p /data
