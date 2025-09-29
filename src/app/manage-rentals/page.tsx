@@ -240,7 +240,31 @@ export default function ManageRentalsPage() {
   const handleFilterChange = (key: string, value: string) => {
     setFilters(prev => ({ ...prev, [key]: value }))
   }
-
+  
+  // fungsi untuk menghapus filter tertentu
+  const removeFilter = (filterType: string) => {
+    switch (filterType) {
+      case "clientID":
+        handleFilterChange("clientID", "")
+        setClientSearch("")
+        break
+      case "station":
+        handleFilterChange("station", "")
+        break
+      case "assetCode":
+        handleFilterChange("assetCode", "")
+        break
+      case "status":
+        handleFilterChange("status", "all")
+        break
+      case "dateRange":
+        handleFilterChange("startDate", "")
+        handleFilterChange("endDate", "")
+        break
+      default:
+        break
+    }
+  }
   const clearFilters = () => {
   setFilters({
     clientID: "",
@@ -613,40 +637,82 @@ export default function ManageRentalsPage() {
         </Card>
 
         {/* Results Section */}
-       {/* Indikator Filter Aktif dan badge */}
+       {/* Indikator Filter Aktif */}
         <div className="mb-4 flex flex-wrap gap-2 items-center">
+          {/* Filter Client */}
           {filters.clientID && (
             <Badge variant="secondary" className="flex items-center gap-1">
               <Users className="w-3 h-3" />
               Client: {clients.find(c => c.clientID.toString() === filters.clientID)?.txtClient}
+              <button 
+                onClick={() => {
+                  handleFilterChange("clientID", "")
+                  setClientSearch("")
+                }}
+                className="ml-1 hover:text-red-500"
+              >
+                ×
+              </button>
             </Badge>
           )}
           
+          {/* Filter Station */}
           {filters.station && (
             <Badge variant="secondary" className="flex items-center gap-1">
               <MapPin className="w-3 h-3" />
               Stasiun: {filters.station}
+              <button 
+                onClick={() => handleFilterChange("station", "")}
+                className="ml-1 hover:text-red-500"
+              >
+                ×
+              </button>
             </Badge>
           )}
           
+          {/* Filter Kode Aset */}
           {filters.assetCode && (
             <Badge variant="secondary" className="flex items-center gap-1">
               Kode: {filters.assetCode}
+              <button 
+                onClick={() => handleFilterChange("assetCode", "")}
+                className="ml-1 hover:text-red-500"
+              >
+                ×
+              </button>
             </Badge>
           )}
           
+          {/* Filter Status */}
           {filters.status !== "all" && (
             <Badge variant="secondary" className="flex items-center gap-1">
               Status: {filters.status === "active" ? "Aktif" : filters.status === "booked" ? "Booked" : "Selesai"}
+              <button 
+                onClick={() => handleFilterChange("status", "all")}
+                className="ml-1 hover:text-red-500"
+              >
+                ×
+              </button>
             </Badge>
           )}
           
+          {/* Filter Periode Tanggal */}
           {filters.startDate && filters.endDate && (
             <Badge variant="secondary" className="flex items-center gap-1">
               <Calendar className="w-3 h-3" />
               {format(new Date(filters.startDate), "dd/MM/yyyy")} - {format(new Date(filters.endDate), "dd/MM/yyyy")}
+              <button 
+                onClick={() => {
+                  handleFilterChange("startDate", "")
+                  handleFilterChange("endDate", "")
+                }}
+                className="ml-1 hover:text-red-500"
+              >
+                ×
+              </button>
             </Badge>
           )}
+          
           <div className="flex items-center gap-2 ml-auto">
             <p className="text-sm text-gray-600">
               Menampilkan {currentAssets.length} dari {filteredRentals.length} data sewa
