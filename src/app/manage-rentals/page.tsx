@@ -79,7 +79,9 @@ export default function ManageRentalsPage() {
     clientID: "",
     station: "",
     status: "all", // all, active, expired
-    txtCode: ""
+    txtCode: "",
+    startDate: "", // Tanggal mulai filter
+    endDate: ""     // Tanggal akhir filter
   })
 
   const [clientSearch, setClientSearch] = useState("")
@@ -161,52 +163,77 @@ export default function ManageRentalsPage() {
 
   // Fungsi untuk menerapkan filter
   // Perbaiki fungsi applyFilters
-  const applyFilters = () => {
-    let filtered = rentals;
+    const applyFilters = () => {
+    let filtered = rentals
 
+    // Filter client
     if (filters.clientID) {
-      filtered = filtered.filter(rental => rental.clientID.toString() === filters.clientID);
+      filtered = filtered.filter(rental => rental.clientID.toString() === filters.clientID)
     }
 
+    // Filter station
     if (filters.station) {
-      filtered = filtered.filter(rental => rental.asset.txtStation === filters.station);
+      filtered = filtered.filter(rental => rental.asset.txtStation === filters.station)
     }
     
+    // Filter kode aset
     if (filters.assetCode) {
       filtered = filtered.filter((rental) =>
         rental.asset.txtCode
           .toLowerCase()
           .includes(filters.assetCode.toLowerCase())
-      );
+      )
     }
-    
+
+    // Filter status
     if (filters.status !== "all") {
-      const today = new Date();
+      const today = new Date()
       if (filters.status === "active") {
         filtered = filtered.filter(rental => {
-          if (!rental.datestart || !rental.dateend) return false;
-          const start = new Date(rental.datestart);
-          const end = new Date(rental.dateend);
-          return end >= today && start <= today;
-        });
+          if (!rental.datestart || !rental.dateend) return false
+          const start = new Date(rental.datestart)
+          const end = new Date(rental.dateend)
+          return end >= today && start <= today
+        })
       } else if (filters.status === "expired") {
         filtered = filtered.filter(rental => {
-          if (!rental.dateend) return false;
-          const end = new Date(rental.dateend);
-          return end < today;
-        });
+          if (!rental.dateend) return false
+          const end = new Date(rental.dateend)
+          return end < today
+        })
       } else if (filters.status === "booked") {
         filtered = filtered.filter(rental => {
-          if (!rental.datestart) return false;
-          const start = new Date(rental.datestart);
-          return start > today;
-        });
+          if (!rental.datestart) return false
+          const start = new Date(rental.datestart)
+          return start > today
+        })
       }
     }
 
-    setFilteredRentals(filtered);
-    setCurrentPage(1);
-  };
+    // Filter periode tanggal
+    if (filters.startDate && filters.endDate) {
+      const startDate = new Date(filters.startDate)
+      const endDate = new Date(filters.endDate)
+      
+      // Set jam ke 00:00:00 untuk startDate dan 23:59:59 untuk endDate
+      startDate.setHours(0, 0, 0, 0)
+      endDate.setHours(23, 59, 59, 999)
+      
+      filtered = filtered.filter(rental => {
+        // Lewati jika tanggal rental kosong
+        if (!rental.datestart || !rental.dateend) return false
+        
+        const rentalStart = new Date(rental.datestart)
+        const rentalEnd = new Date(rental.dateend)
+        
+        // Cek apakah periode rental tumpang tindih dengan periode filter
+        return rentalStart <= endDate && rentalEnd >= startDate
+      })
+    }
+
+    setFilteredRentals(filtered)
+    setCurrentPage(1)
+  }
 
   const handleFilterChange = (key: string, value: string) => {
     setFilters(prev => ({ ...prev, [key]: value }))
@@ -216,7 +243,10 @@ export default function ManageRentalsPage() {
     setFilters({
       clientID: "",
       station: "",
-      status: "all"
+      status: "all",
+      assetCode: "",
+      startDate: "",
+      endDate: ""
     })
   }
   // Parameter untuk pagination
@@ -466,7 +496,7 @@ export default function ManageRentalsPage() {
                 </Select>
               </div>
 
-
+              {/* Filter Kode Aset */}
               <div className="space-y-2">
               <Label>Kode Aset</Label>
               <Input
@@ -476,7 +506,7 @@ export default function ManageRentalsPage() {
               />
             </div>
 
-
+              {/* Filter Status */}
               <div className="space-y-2">
                 <Label>Status</Label>
                 <Select value={filters.status} onValueChange={(value) => handleFilterChange("status", value)}>
@@ -491,6 +521,48 @@ export default function ManageRentalsPage() {
                   </SelectContent>
                 </Select>
               </div>
+
+              {/* Filter Periode Tanggal - Baris Baru */}
+              <div className="col-span-4 align-middle space-y-2">
+                <Label>Periode Tanggal</Label>
+                <div className="flex gap-2 items-center">
+                  <Input
+                    type="date"
+                    value={filters.startDate}
+                    onChange={(e) => handleFilterChange("startDate", e.target.value)}
+                    className="w-auto"
+                  />
+                  <span className="text-gray-500">hingga</span>
+                  <Input
+                    type="date"
+                    value={filters.endDate}
+                    onChange={(e) => {
+                      const selectedDate = e.target.value
+                      if (filters.startDate && selectedDate < filters.startDate) {
+                        // Tampilkan pesan error atau reset tanggal
+                        setError("Tanggal akhir tidak boleh sebelum tanggal mulai")
+                        return
+                      }
+                      handleFilterChange("endDate", selectedDate)
+                    }}
+                    min={filters.startDate || undefined}
+                    className="w-auto"
+                  />
+                </div>
+              </div>
+
+              {/* Badge filter tanggal aktif */}
+              <div className="mb-4 flex gap-2">
+                {filters.startDate && filters.endDate && (
+                  <Badge variant="secondary" className="flex items-center gap-1">
+                    <Calendar className="w-3 h-3" />
+                    {format(new Date(filters.startDate), "dd/MM/yyyy")} - {format(new Date(filters.endDate), "dd/MM/yyyy")}
+                  </Badge>
+              )}
+              <p className="text-sm text-gray-600">
+                Menampilkan {currentAssets.length} dari {rentals.length} data sewa
+              </p>
+            </div>
             </div>
 
             <div className="flex justify-end">
