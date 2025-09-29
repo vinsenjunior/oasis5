@@ -82,6 +82,8 @@ export default function ManageRentalsPage() {
     txtCode: ""
   })
 
+  const [clientSearch, setClientSearch] = useState("")
+
   const [currentPage, setCurrentPage] = useState(1)
   const [itemsPerPage] = useState(20)
   // const [loading, setLoading] = useState(true)
@@ -99,6 +101,18 @@ export default function ManageRentalsPage() {
   const [deleteLoading, setDeleteLoading] = useState(false)
   const [error, setError] = useState("")
   const [success, setSuccess] = useState("")
+
+  // Fungsi pembantu tanggal
+  // Tambahkan fungsi pembantu untuk memformat tanggal dengan aman
+  const formatDate = (dateString: string | null | undefined) => {
+    if (!dateString) return "--";
+    try {
+      return format(new Date(dateString), "dd/MM/yyyy");
+    } catch (error) {
+      console.error("Error formatting date:", error);
+      return "--";
+    }
+  };
 
   useEffect(() => {
     const isAuthenticated = localStorage.getItem("isAuthenticated")
@@ -145,37 +159,54 @@ export default function ManageRentalsPage() {
     }
   }
 
+  // Fungsi untuk menerapkan filter
+  // Perbaiki fungsi applyFilters
   const applyFilters = () => {
-    let filtered = rentals
+    let filtered = rentals;
 
     if (filters.clientID) {
-      filtered = filtered.filter(rental => rental.clientID.toString() === filters.clientID)
+      filtered = filtered.filter(rental => rental.clientID.toString() === filters.clientID);
     }
 
     if (filters.station) {
-      filtered = filtered.filter(rental => rental.asset.txtStation === filters.station)
+      filtered = filtered.filter(rental => rental.asset.txtStation === filters.station);
     }
     
     if (filters.assetCode) {
-    filtered = filtered.filter((rental) =>
-      rental.asset.txtCode
-        .toLowerCase()
-        .includes(filters.assetCode.toLowerCase())
-    )
-  }
+      filtered = filtered.filter((rental) =>
+        rental.asset.txtCode
+          .toLowerCase()
+          .includes(filters.assetCode.toLowerCase())
+      );
+    }
+    
     if (filters.status !== "all") {
-      const today = new Date()
+      const today = new Date();
       if (filters.status === "active") {
-        filtered = filtered.filter(rental => new Date(rental.dateend) >= today && new Date(rental.datestart) <= today)
+        filtered = filtered.filter(rental => {
+          if (!rental.datestart || !rental.dateend) return false;
+          const start = new Date(rental.datestart);
+          const end = new Date(rental.dateend);
+          return end >= today && start <= today;
+        });
       } else if (filters.status === "expired") {
-        filtered = filtered.filter(rental => new Date(rental.dateend) < today)
+        filtered = filtered.filter(rental => {
+          if (!rental.dateend) return false;
+          const end = new Date(rental.dateend);
+          return end < today;
+        });
       } else if (filters.status === "booked") {
-        filtered = filtered.filter(rental => new Date(rental.datestart) > today)
-    }}
+        filtered = filtered.filter(rental => {
+          if (!rental.datestart) return false;
+          const start = new Date(rental.datestart);
+          return start > today;
+        });
+      }
+    }
 
-    setFilteredRentals(filtered)
-    setCurrentPage(1)
-  }
+    setFilteredRentals(filtered);
+    setCurrentPage(1);
+  };
 
   const handleFilterChange = (key: string, value: string) => {
     setFilters(prev => ({ ...prev, [key]: value }))
@@ -257,29 +288,30 @@ export default function ManageRentalsPage() {
     }
   }
 
-  // const getStatusBadge = (dateEnd: string) => {
-  //   const endDate = new Date(dateEnd)
-  //   const today = new Date()
+  // Fungsi untuk mendapatkan badge status
+  // Perbaiki fungsi getStatusBadge
+  const getStatusBadge = (startDate: string | null, endDate: string | null) => {
+    const today = new Date();
     
-  //   if (endDate >= today) {
-  //     return <Badge className="bg-green-100 text-green-800">Active</Badge>
-  //   } else {
-  //     return <Badge variant="destructive">Expired</Badge>
-  //   }
-  // }
-  const getStatusBadge = (startDate: string, endDate: string) => {
-    const today = new Date()
-    const start = new Date(startDate)
-    const end = new Date(endDate)
+    if (!startDate || !endDate) {
+      return <Badge variant="secondary">Tanggal tidak valid</Badge>;
+    }
+    
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    
+    if (isNaN(start.getTime()) || isNaN(end.getTime())) {
+      return <Badge variant="secondary">Tanggal tidak valid</Badge>;
+    }
     
     if (today < start) {
-      return <Badge className="bg-green-100 text-green-800">Booked</Badge>
+      return <Badge className="bg-green-100 text-green-800">Booked</Badge>;
     } else if (today >= start && today <= end) {
-      return <Badge variant="outline">Aktif</Badge>
+      return <Badge variant="outline">Aktif</Badge>;
     } else {
-      return <Badge variant="destructive">Selesai</Badge>
+      return <Badge variant="destructive">Selesai</Badge>;
     }
-  }
+  };
 
   if (!userRole) {
     return <div>Loading...</div>
@@ -320,46 +352,102 @@ export default function ManageRentalsPage() {
             <CardDescription>Filter data sewa berdasarkan kriteria tertentu</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-5 gap-4">
+            <div className="grid grid-cols-4 gap-4">
+
+              {/* Filter Client */}
               <div className="space-y-2">
-                <Label>Client</Label>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      role="combobox"
-                      className="w-full justify-between"
-                    >
-                      {filters.clientID
-                        ? clients.find((c) => c.clientID.toString() === filters.clientID)?.txtClient
-                        : "Ketik atau pilih client..."}
-                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-[300px] p-0">
-                    <Command>
-                      <CommandInput placeholder="Cari client..." />
-                      <CommandList>
-                        <CommandEmpty>Tidak ada client ditemukan.</CommandEmpty>
-                        <CommandGroup>
-                          {clients.map((client) => (
-                            <CommandItem
-                              key={client.clientID}
-                              value={`${client.txtClient} ${client.txtCompany ?? ""}`}
-                              onSelect={() =>
-                                handleFilterChange("clientID", client.clientID.toString())
-                              }
-                            >
-                              {client.txtClient}{" "}
-                              {client.txtCompany && `(${client.txtCompany})`}
-                            </CommandItem>
-                          ))}
-                        </CommandGroup>
-                      </CommandList>
-                    </Command>
-                  </PopoverContent>
-                </Popover>
-</div>
+                  <Label>Client</Label>
+
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        role="combobox"
+                        aria-expanded="false"
+                        className="w-full justify-between"
+                      >
+                        {filters.clientID
+                          ? clients.find(c => c.clientID.toString() === filters.clientID)?.txtClient
+                          : (clientSearch || "Pilih atau ketik client...")}
+                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                      </Button>
+                    </PopoverTrigger>
+
+                    <PopoverContent className="w-full max-w-md p-0 max-h-[60vh] overflow-y-auto">
+                      <Command>
+                        <CommandInput
+                          value={clientSearch}
+                          onValueChange={(value) => {
+                            const v = value.trim()
+                            setClientSearch(value)
+                            if (v === "") {
+                              handleFilterChange("clientID", "")
+                              return
+                            }
+                            // jika user mengetik persis nama/company yang ada -> set clientID
+                            const exact = clients.find(
+                              (c) =>
+                                c.txtClient.toLowerCase() === v.toLowerCase() ||
+                                c.txtCompany.toLowerCase() === v.toLowerCase()
+                            )
+                            if (exact) {
+                              handleFilterChange("clientID", exact.clientID.toString())
+                            } else {
+                              // masih mengetik, jangan keep previous client id
+                              handleFilterChange("clientID", "")
+                            }
+                          }}
+                          placeholder="Ketik nama client atau company..."
+                        />
+
+                        <CommandList>
+                          {/* hitung filtered secara manual untuk menghindari fuzzy match */}
+                          {(() => {
+                            const q = clientSearch.trim().toLowerCase()
+                            const filtered = q
+                              ? clients.filter(
+                                  (c) =>
+                                    c.txtClient.toLowerCase().includes(q) ||
+                                    c.txtCompany.toLowerCase().includes(q)
+                                )
+                              : clients
+
+                            if (filtered.length === 0) {
+                              return <CommandEmpty>Tidak ada client ditemukan</CommandEmpty>
+                            }
+
+                            return (
+                              <CommandGroup>
+                                {filtered.map((client) => (
+                                  <CommandItem
+                                    key={client.clientID}
+                                    value={client.txtClient}
+                                    onSelect={() => {
+                                      // pilih client -> set id + tampilkan nama di input
+                                      handleFilterChange("clientID", client.clientID.toString())
+                                      setClientSearch(client.txtClient)
+                                    }}
+                                  >
+                                    <div className="flex flex-col">
+                                      <span>{client.txtClient}</span>
+                                      {client.txtCompany && (
+                                        <span className="text-sm text-muted-foreground">
+                                          {client.txtCompany}
+                                        </span>
+                                      )}
+                                    </div>
+                                  </CommandItem>
+                                ))}
+                              </CommandGroup>
+                            )
+                          })()}
+                        </CommandList>
+                      </Command>
+                    </PopoverContent>
+                  </Popover>
+                </div>
+
+              {/* Filter Station */}
 
               <div className="space-y-2">
                 <Label>Stasiun</Label>
@@ -462,8 +550,8 @@ export default function ManageRentalsPage() {
                       <TableCell>{rental.asset.txtStation}</TableCell>
                       <TableCell>
                         <div className="text-sm">
-                          <div>{format(new Date(rental.datestart), "dd/MM/yyyy")}</div>
-                          <div className="text-gray-500">s/d {format(new Date(rental.dateend), "dd/MM/yyyy")}</div>
+                          <div>{formatDate(rental.datestart)}</div>
+                          <div className="text-gray-500">s/d {formatDate(rental.dateend)}</div>
                         </div>
                       </TableCell>
                       <TableCell>{rental.txtsales || "-"}</TableCell>
@@ -509,7 +597,7 @@ export default function ManageRentalsPage() {
                                 </div>
                                 <div className="col-span-2">
                                   <Label className="text-sm font-medium">Periode Sewa</Label>
-                                  <p>{format(new Date(rental.datestart), "dd/MM/yyyy")} - {format(new Date(rental.dateend), "dd/MM/yyyy")}</p>
+                                  <p>{formatDate(rental.datestart)} - {formatDate(rental.dateend)}</p>
                                 </div>
                                 {rental.lnkreport && (
                                   <div className="col-span-2">
