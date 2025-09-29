@@ -78,6 +78,7 @@ export default function InputRentalPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
   const [success, setSuccess] = useState("")
+  const [clientSearch, setClientSearch] = useState("")
 
   useEffect(() => {
     const isAuthenticated = localStorage.getItem("isAuthenticated")
@@ -261,43 +262,98 @@ export default function InputRentalPage() {
               
               {/* Filter client */}
               <div className="space-y-2">
-                <Label>Client</Label>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      role="combobox"
-                      className="w-full justify-between"
-                    >
-                      {formData.clientID
-                        ? clients.find(c => c.clientID.toString() === formData.clientID)?.txtClient
-                        : "Pilih atau ketik client..."}
-                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-[400px] p-0 max-h-60 overflow-y-auto">
-                    <Command>
-                      <CommandInput placeholder="Cari client..." />
-                      <CommandList>
-                        <CommandEmpty>Tidak ada client ditemukan</CommandEmpty>
-                        <CommandGroup>
-                          {clients.map(client => (
-                            <CommandItem
-                              key={client.clientID}
-                              value={`${client.txtClient} ${client.txtCompany}`}
-                              onSelect={() => {
-                                handleInputChange("clientID", client.clientID.toString())
-                              }}
-                            >
-                              {client.txtClient} {client.txtCompany && `(${client.txtCompany})`}
-                            </CommandItem>
-                          ))}
-                        </CommandGroup>
-                      </CommandList>
-                    </Command>
-                  </PopoverContent>
-                </Popover>
-              </div>
+              <Label>Client</Label>
+
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    role="combobox"
+                    aria-expanded="false"
+                    className="w-full justify-between"
+                  >
+                    {formData.clientID
+                      ? clients.find(c => c.clientID.toString() === formData.clientID)?.txtClient
+                      : (clientSearch || "Pilih atau ketik client...")}
+                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                  </Button>
+                </PopoverTrigger>
+
+                <PopoverContent className="w-full max-w-md p-0 max-h-[60vh] overflow-y-auto">
+                  <Command>
+                    <CommandInput
+                      value={clientSearch}
+                      onValueChange={(value) => {
+                        const v = value.trim()
+                        setClientSearch(value)
+                        if (v === "") {
+                          handleInputChange("clientID", "")
+                          return
+                        }
+                        // jika user mengetik persis nama/company yang ada -> set clientID
+                        const exact = clients.find(
+                          (c) =>
+                            c.txtClient.toLowerCase() === v.toLowerCase() ||
+                            c.txtCompany.toLowerCase() === v.toLowerCase()
+                        )
+                        if (exact) {
+                          handleInputChange("clientID", exact.clientID.toString())
+                        } else {
+                          // masih mengetik, jangan keep previous client id
+                          handleInputChange("clientID", "")
+                        }
+                      }}
+                      placeholder="Ketik nama client atau company..."
+                    />
+
+                    <CommandList>
+                      {/* hitung filtered secara manual untuk menghindari fuzzy match */}
+                      {(() => {
+                        const q = clientSearch.trim().toLowerCase()
+                        const filtered = q
+                          ? clients.filter(
+                              (c) =>
+                                c.txtClient.toLowerCase().includes(q) ||
+                                c.txtCompany.toLowerCase().includes(q)
+                            )
+                          : clients
+
+                        if (filtered.length === 0) {
+                          return <CommandEmpty>Tidak ada client ditemukan</CommandEmpty>
+                        }
+
+                        return (
+                          <CommandGroup>
+                            {filtered.map((client) => (
+                              <CommandItem
+                                key={client.clientID}
+                                value={client.txtClient}
+                                onSelect={() => {
+                                  // pilih client -> set id + tampilkan nama di input
+                                  handleInputChange("clientID", client.clientID.toString())
+                                  setClientSearch(client.txtClient)
+                                }}
+                              >
+                                <div className="flex flex-col">
+                                  <span>{client.txtClient}</span>
+                                  {client.txtCompany && (
+                                    <span className="text-sm text-muted-foreground">
+                                      {client.txtCompany}
+                                    </span>
+                                  )}
+                                </div>
+                              </CommandItem>
+                            ))}
+                          </CommandGroup>
+                        )
+                      })()}
+                    </CommandList>
+                  </Command>
+                </PopoverContent>
+              </Popover>
+            </div>
+
+              {/* Input Sales */}
                 <div className="space-y-2">
                   <Label htmlFor="sales">Nama Sales</Label>
                   <Input
