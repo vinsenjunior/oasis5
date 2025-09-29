@@ -10,7 +10,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Badge } from "@/components/ui/badge"
-import { Plus, Trash2 } from "lucide-react"
+import { Plus, Trash2, ChevronsUpDown } from "lucide-react"
 import {
   Dialog,
   DialogContent,
@@ -18,13 +18,20 @@ import {
 } from "@/components/ui/dialog"
 
 import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover"
+import {
   Command,
   CommandEmpty,
   CommandGroup,
   CommandInput,
   CommandItem,
+  CommandList,
 } from "@/components/ui/command"
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+
+
 
 
 interface Client {
@@ -251,40 +258,45 @@ export default function InputRentalPage() {
               )}
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              
+              {/* Filter client */}
               <div className="space-y-2">
                 <Label>Client</Label>
-                <Command>
-                  <CommandInput 
-                    placeholder="Ketik atau pilih client..." 
-                    onValueChange={(value) => {
-                      // Cari client yang cocok dengan nama atau company
-                      const found = clients.find(
-                        (c) =>
-                          c.txtClient.toLowerCase() === value.toLowerCase() ||
-                          c.txtCompany.toLowerCase() === value.toLowerCase()
-                      )
-                      if (found) {
-                        handleFilterChange("clientID", found.clientID.toString())
-                      } else if (value === "") {
-                        handleFilterChange("clientID", "")
-                      }
-                    }}
-                  />
-                  <CommandList>
-                    <CommandEmpty>Tidak ada client ditemukan</CommandEmpty>
-                    <CommandGroup>
-                      {clients.map((client) => (
-                        <CommandItem
-                          key={client.clientID}
-                          value={client.txtClient}
-                          onSelect={() => handleFilterChange("clientID", client.clientID.toString())}
-                        >
-                          {client.txtClient} {client.txtCompany && `(${client.txtCompany})`}
-                        </CommandItem>
-                      ))}
-                    </CommandGroup>
-                  </CommandList>
-                </Command>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      role="combobox"
+                      className="w-full justify-between"
+                    >
+                      {formData.clientID
+                        ? clients.find(c => c.clientID.toString() === formData.clientID)?.txtClient
+                        : "Pilih atau ketik client..."}
+                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-[400px] p-0 max-h-60 overflow-y-auto">
+                    <Command>
+                      <CommandInput placeholder="Cari client..." />
+                      <CommandList>
+                        <CommandEmpty>Tidak ada client ditemukan</CommandEmpty>
+                        <CommandGroup>
+                          {clients.map(client => (
+                            <CommandItem
+                              key={client.clientID}
+                              value={`${client.txtClient} ${client.txtCompany}`}
+                              onSelect={() => {
+                                handleInputChange("clientID", client.clientID.toString())
+                              }}
+                            >
+                              {client.txtClient} {client.txtCompany && `(${client.txtCompany})`}
+                            </CommandItem>
+                          ))}
+                        </CommandGroup>
+                      </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
               </div>
                 <div className="space-y-2">
                   <Label htmlFor="sales">Nama Sales</Label>
