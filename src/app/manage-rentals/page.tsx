@@ -96,7 +96,9 @@ export default function ManageRentalsPage() {
   const [editForm, setEditForm] = useState({
     txtsales: "",
     lnkreport: "",
-    txtnotes: ""
+    txtnotes: "",
+    datestart: "",  // Tambahkan ini
+    dateend: ""     // Tambahkan ini
   })
   
   const [loading, setLoading] = useState(false)
@@ -240,14 +242,14 @@ export default function ManageRentalsPage() {
   }
 
   const clearFilters = () => {
-    setFilters({
-      clientID: "",
-      station: "",
-      status: "all",
-      assetCode: "",
-      startDate: "",
-      endDate: ""
-    })
+  setFilters({
+    clientID: "",
+    station: "",
+    status: "all",
+    assetCode: "",
+    startDate: "",
+    endDate: ""
+    })  
   }
   // Parameter untuk pagination
   const totalPages = Math.ceil(filteredRentals.length / itemsPerPage)
@@ -259,7 +261,9 @@ export default function ManageRentalsPage() {
     setEditForm({
       txtsales: rental.txtsales || "",
       lnkreport: rental.lnkreport || "",
-      txtnotes: rental.txtnotes || ""
+      txtnotes: rental.txtnotes || "",
+      datestart: rental.datestart ? format(new Date(rental.datestart), "yyyy-MM-dd") : "",
+      dateend: rental.dateend ? format(new Date(rental.dateend), "yyyy-MM-dd") : ""
     })
   }
 
@@ -271,12 +275,24 @@ export default function ManageRentalsPage() {
     setSuccess("")
 
     try {
+      // Validasi tanggal
+      if (!editForm.datestart || !editForm.dateend) {
+        throw new Error("Tanggal mulai dan selesai sewa harus diisi")
+      }
+      
+      if (new Date(editForm.dateend) < new Date(editForm.datestart)) {
+        throw new Error("Tanggal selesai harus setelah tanggal mulai")
+      }
+
       const response = await fetch(`/api/rentals`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           rentid: editingRental.rentid,
-          ...editForm
+          ...editForm,
+          // Konversi tanggal ke format ISO jika ada
+          datestart: editForm.datestart ? new Date(editForm.datestart).toISOString() : null,
+          dateend: editForm.dateend ? new Date(editForm.dateend).toISOString() : null
         })
       })
 
@@ -667,10 +683,13 @@ export default function ManageRentalsPage() {
                                   <Label className="text-sm font-medium">Media Sub Group</Label>
                                   <p>{rental.asset.txtMediaSubGroup}</p>
                                 </div>
-                                <div className="col-span-2">
-                                  <Label className="text-sm font-medium">Periode Sewa</Label>
-                                  <p>{formatDate(rental.datestart)} - {formatDate(rental.dateend)}</p>
-                                </div>
+                               <div className="col-span-2">
+                                <Label className="text-sm font-medium">Periode Sewa</Label>
+                                <p className="flex items-center gap-2">
+                                  <Calendar className="w-4 h-4" />
+                                  {formatDate(rental.datestart)} - {formatDate(rental.dateend)}
+                                </p>
+                              </div>
                                 {rental.lnkreport && (
                                   <div className="col-span-2">
                                     <Label className="text-sm font-medium">Link Report</Label>
@@ -750,10 +769,7 @@ export default function ManageRentalsPage() {
                               </Button>
                             </DialogTrigger>
                             
-                            <DialogContent className="max-w-2xl" onCloseAutoFocus={(e) => {
-                                  e.preventDefault() // cegah scroll ke trigger
-                                }}>
-                              
+                            <DialogContent className="max-w-2xl">
                               <DialogHeader>
                                 <DialogTitle>Edit Data Sewa #{editingRental?.rentid}</DialogTitle>
                                 <DialogDescription>
@@ -762,36 +778,75 @@ export default function ManageRentalsPage() {
                               </DialogHeader>
 
                               <div className="space-y-4">
+                                {/* Input Tanggal Start */}
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="space-y-2">
+                                      <Label htmlFor="datestart">Tanggal Mulai Sewa</Label>
+                                      <Input
+                                        id="datestart"
+                                        type="date"
+                                        value={editForm.datestart}
+                                        onChange={(e) => {
+                                          setEditForm(prev => ({ ...prev, datestart: e.target.value }))
+                                          // Reset tanggal end jika lebih kecil dari tanggal start baru
+                                          if (editForm.dateend && e.target.value > editForm.dateend) {
+                                            setEditForm(prev => ({ ...prev, dateend: "" }))
+                                          }
+                                        }}
+                                      />
+                                      {/* badge diubah jika berbeda dari data awal */}
+                                      {editingRental && editForm.datestart !== format(new Date(editingRental.datestart), "yyyy-MM-dd") && (
+                                          <Badge variant="secondary">Diubah</Badge>
+                                        )}
+                                    </div>
+
+                                    {/* Input Tanggal End */}
+                                    <div className="space-y-2">
+                                      <Label htmlFor="dateend">Tanggal Selesai Sewa</Label>
+                                      <Input
+                                        id="dateend"
+                                        type="date"
+                                        value={editForm.dateend}
+                                        onChange={(e) => setEditForm(prev => ({ ...prev, dateend: e.target.value }))}
+                                        min={editForm.datestart || undefined}
+                                        disabled={!editForm.datestart}
+                                      />
+                                      {!editForm.datestart && (
+                                        <p className="text-sm text-red-500">Pilih tanggal mulai terlebih dahulu</p>
+                                      )}
+                                      {editForm.datestart && editForm.dateend && new Date(editForm.dateend) < new Date(editForm.datestart) && (
+                                        <p className="text-sm text-red-500">Tanggal selesai harus setelah tanggal mulai</p>
+                                      )}
+                                    </div>
+                                </div>
+
+                                {/* Input Sales */}
                                 <div className="space-y-2">
                                   <Label htmlFor="txtsales">Nama Sales</Label>
                                   <Input
                                     id="txtsales"
                                     value={editForm.txtsales}
-                                    onChange={(e) =>
-                                      setEditForm((prev) => ({ ...prev, txtsales: e.target.value }))
-                                    }
+                                    onChange={(e) => setEditForm(prev => ({ ...prev, txtsales: e.target.value }))}
                                   />
                                 </div>
 
+                                {/* Input Link Report */}
                                 <div className="space-y-2">
                                   <Label htmlFor="lnkreport">Link Report</Label>
                                   <Input
                                     id="lnkreport"
                                     value={editForm.lnkreport}
-                                    onChange={(e) =>
-                                      setEditForm((prev) => ({ ...prev, lnkreport: e.target.value }))
-                                    }
+                                    onChange={(e) => setEditForm(prev => ({ ...prev, lnkreport: e.target.value }))}
                                   />
                                 </div>
 
+                                {/* Input Catatan */}
                                 <div className="space-y-2">
                                   <Label htmlFor="txtnotes">Catatan</Label>
                                   <Textarea
                                     id="txtnotes"
                                     value={editForm.txtnotes}
-                                    onChange={(e) =>
-                                      setEditForm((prev) => ({ ...prev, txtnotes: e.target.value }))
-                                    }
+                                    onChange={(e) => setEditForm(prev => ({ ...prev, txtnotes: e.target.value }))}
                                     rows={3}
                                   />
                                 </div>
@@ -805,7 +860,10 @@ export default function ManageRentalsPage() {
                                 {/* Tombol Update dengan konfirmasi */}
                                 <AlertDialog>
                                   <AlertDialogTrigger asChild>
-                                    <Button disabled={loading}>
+                                    <Button 
+                                      disabled={loading || !editForm.datestart || !editForm.dateend || 
+                                              (editForm.datestart && editForm.dateend && new Date(editForm.dateend) < new Date(editForm.datestart))}
+                                    >
                                       {loading ? "Loading..." : "Update"}
                                     </Button>
                                   </AlertDialogTrigger>
@@ -833,7 +891,7 @@ export default function ManageRentalsPage() {
                             </DialogContent>
                           </Dialog>
 
-
+                          {/* Dialog konfirmasi hapus */}
                           <AlertDialog>
                             <AlertDialogTrigger asChild>
                               <Button variant="destructive" size="sm">
