@@ -74,11 +74,15 @@ export default function ManageRentalsPage() {
   const [filteredRentals, setFilteredRentals] = useState<Rental[]>([])
   const [clients, setClients] = useState<Client[]>([])
   const [stations, setStations] = useState<string[]>([])
+  const [mediaGroups, setMediaGroups] = useState<string[]>([])
+  const [mediaSubGroups, setMediaSubGroups] = useState<string[]>([])
   
   const [filters, setFilters] = useState({
     clientID: "",
     station: "",
     status: "all", // all, active, expired
+    mediaGroup: "",      // Add this
+    mediaSubGroup: "",
     assetCode: "",
     startDate: "", // Tanggal mulai filter
     endDate: ""     // Tanggal akhir filter
@@ -142,8 +146,11 @@ export default function ManageRentalsPage() {
       const rentalsData = await rentalsResponse.json()
       setRentals(rentalsData)
       
-      // Extract unique stations and clients
+      // Extract unique stations, clients, media groups, and media sub groups
       const uniqueStations = [...new Set(rentalsData.map((rental: Rental) => rental.asset.txtStation))]
+      const uniqueMediaGroups = [...new Set(rentalsData.map((rental: Rental) => rental.asset.txtMediaGroup))]
+      const uniqueMediaSubGroups = [...new Set(rentalsData.map((rental: Rental) => rental.asset.txtMediaSubGroup))]
+      
       const uniqueClients = rentalsData.reduce((acc: Client[], rental: Rental) => {
         if (!acc.find(c => c.clientID === rental.clientID)) {
           acc.push({
@@ -156,6 +163,8 @@ export default function ManageRentalsPage() {
       }, [])
       
       setStations(uniqueStations)
+      setMediaGroups(uniqueMediaGroups)
+      setMediaSubGroups(uniqueMediaSubGroups)
       setClients(uniqueClients)
       
     } catch (err) {
@@ -166,76 +175,86 @@ export default function ManageRentalsPage() {
   // Fungsi untuk menerapkan filter
   // Perbaiki fungsi applyFilters
     const applyFilters = () => {
-    let filtered = rentals
+      let filtered = rentals
 
-    // Filter client
-    if (filters.clientID) {
-      filtered = filtered.filter(rental => rental.clientID.toString() === filters.clientID)
-    }
+      // Filter client
+      if (filters.clientID) {
+        filtered = filtered.filter(rental => rental.clientID.toString() === filters.clientID)
+      }
 
-    // Filter station
-    if (filters.station) {
-      filtered = filtered.filter(rental => rental.asset.txtStation === filters.station)
-    }
-    
-    // Filter kode aset
-    if (filters.assetCode) {
-      filtered = filtered.filter((rental) =>
-        rental.asset.txtCode
-          .toLowerCase()
-          .includes(filters.assetCode.toLowerCase())
-      )
-    }
+      // Filter station
+      if (filters.station) {
+        filtered = filtered.filter(rental => rental.asset.txtStation === filters.station)
+      }
+      
+      // Filter media group
+      if (filters.mediaGroup) {
+        filtered = filtered.filter(rental => rental.asset.txtMediaGroup === filters.mediaGroup)
+      }
+      
+      // Filter media sub group
+      if (filters.mediaSubGroup) {
+        filtered = filtered.filter(rental => rental.asset.txtMediaSubGroup === filters.mediaSubGroup)
+      }
+      
+      // Filter kode aset
+      if (filters.assetCode) {
+        filtered = filtered.filter((rental) =>
+          rental.asset.txtCode
+            .toLowerCase()
+            .includes(filters.assetCode.toLowerCase())
+        )
+      }
 
-    // Filter status
-    if (filters.status !== "all") {
-      const today = new Date()
-      if (filters.status === "active") {
+      // Filter status
+      if (filters.status !== "all") {
+        const today = new Date()
+        if (filters.status === "active") {
+          filtered = filtered.filter(rental => {
+            if (!rental.datestart || !rental.dateend) return false
+            const start = new Date(rental.datestart)
+            const end = new Date(rental.dateend)
+            return end >= today && start <= today
+          })
+        } else if (filters.status === "expired") {
+          filtered = filtered.filter(rental => {
+            if (!rental.dateend) return false
+            const end = new Date(rental.dateend)
+            return end < today
+          })
+        } else if (filters.status === "booked") {
+          filtered = filtered.filter(rental => {
+            if (!rental.datestart) return false
+            const start = new Date(rental.datestart)
+            return start > today
+          })
+        }
+      }
+
+      // Filter periode tanggal
+      if (filters.startDate && filters.endDate) {
+        const startDate = new Date(filters.startDate)
+        const endDate = new Date(filters.endDate)
+        
+        // Set jam ke 00:00:00 untuk startDate dan 23:59:59 untuk endDate
+        startDate.setHours(0, 0, 0, 0)
+        endDate.setHours(23, 59, 59, 999)
+        
         filtered = filtered.filter(rental => {
+          // Lewati jika tanggal rental kosong
           if (!rental.datestart || !rental.dateend) return false
-          const start = new Date(rental.datestart)
-          const end = new Date(rental.dateend)
-          return end >= today && start <= today
-        })
-      } else if (filters.status === "expired") {
-        filtered = filtered.filter(rental => {
-          if (!rental.dateend) return false
-          const end = new Date(rental.dateend)
-          return end < today
-        })
-      } else if (filters.status === "booked") {
-        filtered = filtered.filter(rental => {
-          if (!rental.datestart) return false
-          const start = new Date(rental.datestart)
-          return start > today
+          
+          const rentalStart = new Date(rental.datestart)
+          const rentalEnd = new Date(rental.dateend)
+          
+          // Cek apakah periode rental tumpang tindih dengan periode filter
+          return rentalStart <= endDate && rentalEnd >= startDate
         })
       }
-    }
 
-    // Filter periode tanggal
-    if (filters.startDate && filters.endDate) {
-      const startDate = new Date(filters.startDate)
-      const endDate = new Date(filters.endDate)
-      
-      // Set jam ke 00:00:00 untuk startDate dan 23:59:59 untuk endDate
-      startDate.setHours(0, 0, 0, 0)
-      endDate.setHours(23, 59, 59, 999)
-      
-      filtered = filtered.filter(rental => {
-        // Lewati jika tanggal rental kosong
-        if (!rental.datestart || !rental.dateend) return false
-        
-        const rentalStart = new Date(rental.datestart)
-        const rentalEnd = new Date(rental.dateend)
-        
-        // Cek apakah periode rental tumpang tindih dengan periode filter
-        return rentalStart <= endDate && rentalEnd >= startDate
-      })
+      setFilteredRentals(filtered)
+      setCurrentPage(1)
     }
-
-    setFilteredRentals(filtered)
-    setCurrentPage(1)
-  }
 
   const handleFilterChange = (key: string, value: string) => {
     setFilters(prev => ({ ...prev, [key]: value }))
@@ -251,6 +270,12 @@ export default function ManageRentalsPage() {
       case "station":
         handleFilterChange("station", "")
         break
+      case "mediaGroup":
+        handleFilterChange("mediaGroup", "")
+        break
+      case "mediaSubGroup":
+        handleFilterChange("mediaSubGroup", "")
+        break
       case "assetCode":
         handleFilterChange("assetCode", "")
         break
@@ -265,10 +290,13 @@ export default function ManageRentalsPage() {
         break
     }
   }
+
   const clearFilters = () => {
   setFilters({
     clientID: "",
     station: "",
+    mediaGroup: "",
+    mediaSubGroup: "",
     status: "all",
     assetCode: "",
     startDate: "",
@@ -558,8 +586,42 @@ export default function ManageRentalsPage() {
                 </Select>
               </div>
 
-              {/* Filter Kode Aset */}
+              {/* Filter Media Group */}
               <div className="min-w-[150px] flex-1">
+                <Label className="text-sm">Media Group</Label>
+                <Select value={filters.mediaGroup} onValueChange={(value) => handleFilterChange("mediaGroup", value)}>
+                  <SelectTrigger className="mt-1">
+                    <SelectValue placeholder="Pilih media group" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {mediaGroups.map((group) => (
+                      <SelectItem key={group} value={group}>
+                        {group}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Filter Media Sub Group */}
+              <div className="min-w-[150px] flex-1">
+                <Label className="text-sm">Media Sub Group</Label>
+                <Select value={filters.mediaSubGroup} onValueChange={(value) => handleFilterChange("mediaSubGroup", value)}>
+                  <SelectTrigger className="mt-1">
+                    <SelectValue placeholder="Pilih media sub group" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {mediaSubGroups.map((subGroup) => (
+                      <SelectItem key={subGroup} value={subGroup}>
+                        {subGroup}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Filter Kode Aset */}
+              <div className="w-24 flex-none">
                 <Label className="text-sm">Kode Aset</Label>
                 <Input
                   placeholder="Kode aset..."
@@ -586,7 +648,7 @@ export default function ManageRentalsPage() {
               </div>
 
              {/* Filter Tanggal */}
-              <div className="min-w-[250px] flex-1 date-picker-container">
+              <div className="min-w-[250px] flex-none date-picker-container">
                 <Label className="text-sm">Periode Tanggal</Label>
                 <div className="flex gap-1 mt-1">
                   <Input
@@ -629,7 +691,7 @@ export default function ManageRentalsPage() {
 
               {/* Tombol Clear */}
               <div>
-                <Button variant="outline" onClick={clearFilters} className="mt-6">
+                <Button variant="default" onClick={clearFilters} className="mt-6">
                   Clear
                 </Button>
               </div>
@@ -670,7 +732,33 @@ export default function ManageRentalsPage() {
               </button>
             </Badge>
           )}
-          
+
+          {/* Filter Media Group */}
+          {filters.mediaGroup && (
+            <Badge variant="secondary" className="flex items-center gap-1">
+              Media Group: {filters.mediaGroup}
+              <button 
+                onClick={() => handleFilterChange("mediaGroup", "")}
+                className="ml-1 hover:text-red-500"
+              >
+                ×
+              </button>
+            </Badge>
+          )}
+
+          {/* Filter Media Sub Group */}
+          {filters.mediaSubGroup && (
+            <Badge variant="secondary" className="flex items-center gap-1">
+              Media Sub Group: {filters.mediaSubGroup}
+              <button 
+                onClick={() => handleFilterChange("mediaSubGroup", "")}
+                className="ml-1 hover:text-red-500"
+              >
+                ×
+              </button>
+            </Badge>
+          )}
+
           {/* Filter Kode Aset */}
           {filters.assetCode && (
             <Badge variant="secondary" className="flex items-center gap-1">
