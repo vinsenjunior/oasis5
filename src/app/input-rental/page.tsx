@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useState, useEffect } from "react"
@@ -187,10 +188,19 @@ export default function InputRentalPage() {
 
       // Create rental data for each asset
       for (const asset of validAssets) {
+        // Find the asset by both code and station to ensure correctness
+        const selectedAsset = assets.find(a => a.txtCode === asset.assetCode && a.txtStation === asset.station)
+        if (!selectedAsset) {
+          setError(`Aset dengan kode ${asset.assetCode} di stasiun ${asset.station} tidak ditemukan`)
+          return
+        }
+
         const rentalData = {
           ...formData,
-          assetID: assets.find(a => a.txtCode === asset.assetCode)?.assetID || "",
-          clientID: parseInt(formData.clientID)
+          assetID: selectedAsset.assetID,
+          clientID: parseInt(formData.clientID),
+          // Include station in the rental data
+          // station: asset.station
         }
 
         const response = await fetch("/api/rentals", {
@@ -214,6 +224,7 @@ export default function InputRentalPage() {
         txtnotes: ""
       })
       setRentalAssets([{ station: "", assetCode: "", mediaGroup: "", mediaSubGroup: "" }])
+      setClientSearch("");
       
     } catch (error) {
       setError("Terjadi kesalahan saat menyimpan data")
