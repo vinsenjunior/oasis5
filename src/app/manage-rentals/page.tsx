@@ -274,6 +274,7 @@ export default function ManageRentalsPage() {
     startDate: "",
     endDate: ""
     })  
+    setClientSearch("");
   }
   // Parameter untuk pagination
   const totalPages = Math.ceil(filteredRentals.length / itemsPerPage)
