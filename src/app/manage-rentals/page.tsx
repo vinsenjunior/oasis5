@@ -79,7 +79,7 @@ export default function ManageRentalsPage() {
     clientID: "",
     station: "",
     status: "all", // all, active, expired
-    txtCode: "",
+    assetCode: "",
     startDate: "", // Tanggal mulai filter
     endDate: ""     // Tanggal akhir filter
   })
