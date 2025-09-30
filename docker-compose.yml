@@ -1,0 +1,36 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15
+    container_name: inventory_booking_db
+    environment:
+      POSTGRES_DB: inventory_booking
+      POSTGRES_USER: inventory_user
+      POSTGRES_PASSWORD: inventory_password_123
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - inventory_network
+
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: inventory_booking_pgadmin
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@example.com
+      PGADMIN_DEFAULT_PASSWORD: admin123
+    ports:
+      - "8080:80"
+    depends_on:
+      - postgres
+    networks:
+      - inventory_network
+
+volumes:
+  postgres_data:
+
+networks:
+  inventory_network:
+    driver: bridge
