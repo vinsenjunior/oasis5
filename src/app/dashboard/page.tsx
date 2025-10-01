@@ -25,6 +25,10 @@ interface Stats {
   totalStations: number
 }
 
+// Cache configuration
+const STATS_CACHE_KEY = 'dashboard_stats_cache'
+const CACHE_EXPIRY_TIME = 5 * 60 * 1000 // 5 minutes
+
 export default function DashboardPage() {
   const [stats, setStats] = useState<Stats>({
     totalAssets: 0,
@@ -53,38 +57,102 @@ export default function DashboardPage() {
     setUserRole(role || "")
   }
 
-  const fetchStats = async () => {
+  // Get cached stats if available and not expired
+  const getCachedStats = (): Stats | null => {
     try {
-      const [assetsRes, clientsRes, rentalsRes, stationsRes] = await Promise.all([
+      const cachedData = localStorage.getItem(STATS_CACHE_KEY)
+      if (!cachedData) return null
+      
+      const { stats, timestamp } = JSON.parse(cachedData)
+      const now = new Date().getTime()
+      
+      // Return cached stats if still valid
+      if (now - timestamp < CACHE_EXPIRY_TIME) {
+        return stats
+      }
+      
+      return null
+    } catch (error) {
+      console.error('Error reading cached stats:', error)
+      return null
+    }
+  }
+
+  // Save stats to cache with timestamp
+  const setCachedStats = (stats: Stats) => {
+    try {
+      const cacheData = {
+        stats,
+        timestamp: new Date().getTime()
+      }
+      localStorage.setItem(STATS_CACHE_KEY, JSON.stringify(cacheData))
+    } catch (error) {
+      console.error('Error caching stats:', error)
+    }
+  }
+
+  // Fetch stats with caching strategy
+  const fetchStats = async () => {
+    // First try to get cached stats
+    const cachedStats = getCachedStats()
+    if (cachedStats) {
+      setStats(cachedStats)
+      setIsLoading(false)
+      // Refresh data in background
+      refreshStats()
+      return
+    }
+
+    // If no cache, fetch fresh data
+    await refreshStats()
+  }
+
+  // Function to fetch fresh data from APIs
+  const refreshStats = async () => {
+    try {
+      // Optimize API calls by using specific endpoints
+      const [assetsRes, clientsRes, activeRentalsRes, stationsRes] = await Promise.all([
         fetch("/api/assets"),
         fetch("/api/clients"),
-        fetch("/api/rentals"),
+        fetch("/api/rentals"), // We'll optimize this later
         fetch("/api/assets/stations")
       ])
 
+      const newStats: Stats = {
+        totalAssets: 0,
+        totalClients: 0,
+        activeRentals: 0,
+        totalStations: 0
+      }
+
       if (assetsRes.ok) {
         const assets = await assetsRes.json()
-        setStats(prev => ({ ...prev, totalAssets: assets.length }))
+        newStats.totalAssets = assets.length
       }
 
       if (clientsRes.ok) {
         const clients = await clientsRes.json()
-        setStats(prev => ({ ...prev, totalClients: clients.length }))
+        newStats.totalClients = clients.length
       }
 
-      if (rentalsRes.ok) {
-        const rentals = await rentalsRes.json()
+      if (activeRentalsRes.ok) {
+        const rentals = await activeRentalsRes.json()
         const today = new Date().toISOString().split('T')[0]
+        // Optimize filtering by only checking necessary properties
         const activeRentals = rentals.filter((rental: any) => 
+          rental.datestart && rental.dateend && 
           rental.datestart <= today && rental.dateend >= today
         )
-        setStats(prev => ({ ...prev, activeRentals: activeRentals.length }))
+        newStats.activeRentals = activeRentals.length
       }
 
       if (stationsRes.ok) {
         const stations = await stationsRes.json()
-        setStats(prev => ({ ...prev, totalStations: stations.length }))
+        newStats.totalStations = stations.length
       }
+
+      setStats(newStats)
+      setCachedStats(newStats)
     } catch (error) {
       console.error('Error fetching stats:', error)
     } finally {
@@ -95,6 +163,8 @@ export default function DashboardPage() {
   const handleLogout = () => {
     localStorage.removeItem("isAuthenticated")
     localStorage.removeItem("userRole")
+    // Clear cached stats on logout
+    localStorage.removeItem(STATS_CACHE_KEY)
     router.push("/login")
   }
 
@@ -112,11 +182,10 @@ export default function DashboardPage() {
       return [
         ...baseItems,
         {
-        title: "Check Availability",
-        href: "/check-avail",
-        icon: CheckCircle
+          title: "Check Availability",
+          href: "/check-avail",
+          icon: CheckCircle
         },
-    
         {
           title: "Input Data Sewa",
           href: "/booking",
@@ -172,7 +241,7 @@ export default function DashboardPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
+      {/* Header - unchanged */}
       <header className="bg-white shadow-sm border-b">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
@@ -197,7 +266,7 @@ export default function DashboardPage() {
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-          {/* Sidebar Navigation */}
+          {/* Sidebar Navigation - unchanged */}
           <div className="lg:col-span-1">
             <Card>
               <CardHeader>
@@ -232,7 +301,7 @@ export default function DashboardPage() {
             </Card>
           </div>
 
-          {/* Main Content */}
+          {/* Main Content - unchanged */}
           <div className="lg:col-span-3">
             <div className="mb-8">
               <h2 className="text-2xl font-bold text-gray-900 mb-2">Dashboard</h2>
@@ -300,9 +369,6 @@ export default function DashboardPage() {
             <Card>
               <CardHeader>
                 <CardTitle>Quick Actions</CardTitle>
-                {/* <CardDescription>
-                  Aksi cepat yang sering digunakan
-                </CardDescription> */}
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -343,8 +409,6 @@ export default function DashboardPage() {
                     </>
                   )}
                   
-                 
-                  
                   <Button
                     variant="outline"
                     className="h-20 flex-col"
@@ -362,133 +426,3 @@ export default function DashboardPage() {
     </div>
   )
 }
-
-// export default function DashboardPage() {
-//   const [userRole, setUserRole] = useState<string | null>(null)
-//   const router = useRouter()
-
-//   useEffect(() => {
-//     const isAuthenticated = localStorage.getItem("isAuthenticated")
-//     const role = localStorage.getItem("userRole")
-    
-//     if (!isAuthenticated || !role) {
-//       router.push("/login")
-//       return
-//     }
-    
-//     setUserRole(role)
-//   }, [router])
-
-//   const handleLogout = () => {
-//     localStorage.removeItem("isAuthenticated")
-//     localStorage.removeItem("userRole")
-//     router.push("/login")
-//   }
-
-//   if (!userRole) {
-//     return <div>Loading...</div>
-//   }
-
-//   return (
-//     <div className="min-h-screen bg-gray-50 p-4">
-//       <div className="max-w-6xl mx-auto">
-//         <div className="flex justify-between items-center mb-8">
-//           <div>
-//             <h1 className="text-3xl font-bold">Dashboard</h1>
-//             <p className="">O.A.S.I.S</p>
-//           </div>
-//           <div className="flex items-center gap-4">
-//             <Badge variant="outline" className="">{userRole.toUpperCase()}</Badge>
-//             <Button variant="" className="bg-blue-800 text-white hover:bg-blue-950" onClick={handleLogout}>
-//               Logout
-//             </Button>
-//           </div>
-//         </div>
-
-//         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-//           {/* Admin Features */}
-//           {(userRole === "admin" || userRole === "sms") && (
-//             <>
-              
-//               <Card className="cursor-pointer hover:shadow-lg transition-shadow" onClick={() => router.push("/booking")}>
-//                 <CardHeader>
-//                   <CardTitle>Booking Sewa</CardTitle>
-//                   <CardDescription>Booking based on availability</CardDescription>
-//                 </CardHeader>
-//                 <CardContent>
-//                   <p className="text-sm text-gray-600">Booking sewa aset media iklan</p>
-//                 </CardContent>
-//               </Card>
-
-//               <Card className="cursor-pointer hover:shadow-lg transition-shadow" onClick={() => router.push("/manage-rentals")}>
-//                 <CardHeader>
-//                   <CardTitle>Manajemen Data Sewa</CardTitle>
-//                   <CardDescription>Lihat, edit, hapus data sewa</CardDescription>
-//                 </CardHeader>
-//                 <CardContent>
-//                   <p className="text-sm text-gray-600">Kelola seluruh data penyewaan aset</p>
-//                 </CardContent>
-//               </Card>
-
-//               <Card className="cursor-pointer hover:shadow-lg transition-shadow" onClick={() => router.push("/input-rental")}>
-//                 <CardHeader>
-//                   <CardTitle>Input Data Sewa (Manual)</CardTitle>
-//                   <CardDescription>Sharing titik, Digital, custom</CardDescription>
-//                 </CardHeader>
-//                 <CardContent>
-//                   <p className="text-sm text-gray-600">Masukkan data custom sewa aset</p>
-//                 </CardContent>
-//               </Card>
-
-//               {/* <Card className="cursor-pointer hover:shadow-lg transition-shadow" onClick={() => router.push("/update-rental")}>
-//                 <CardHeader>
-//                   <CardTitle>Ubah Data Sewa</CardTitle>
-//                   <CardDescription>Update data penyewaan existing</CardDescription>
-//                 </CardHeader>
-//                 <CardContent>
-//                   <p className="text-sm text-gray-600">Edit data penyewaan yang sudah ada</p>
-//                 </CardContent>
-//               </Card> */}
-
-//               <Card className="cursor-pointer hover:shadow-lg transition-shadow" onClick={() => router.push("/input-client")}>
-//                 <CardHeader>
-//                   <CardTitle>Input Data Client</CardTitle>
-//                   <CardDescription>Tambah data client baru</CardDescription>
-//                 </CardHeader>
-//                 <CardContent>
-//                   <p className="text-sm text-gray-600">Masukkan informasi client baru</p>
-//                 </CardContent>
-//               </Card>
-//             </>
-//           )}
-
-//           {/* Busdev Features */}
-//           {(userRole === "busdev" || userRole === "admin") && (
-//                <Card className="cursor-pointer hover:shadow-lg transition-shadow" onClick={() => router.push("/input-asset")}>
-//                 <CardHeader>
-//                   <CardTitle>Input Data Aset</CardTitle>
-//                   <CardDescription>Tambah data aset media baru</CardDescription>
-//                 </CardHeader>
-//                 <CardContent>
-//                   <p className="text-sm text-gray-600">Masukkan data aset media iklan baru</p>
-//                 </CardContent>
-//               </Card>
-//           )}
-
-//           {/* Guest Features */}
-//           {(userRole === "admin" || userRole === "busdev" || userRole === "guest" || userRole === "sms") && (
-//             <Card className="cursor-pointer hover:shadow-lg transition-shadow" onClick={() => router.push("/browse-assets")}>
-//               <CardHeader>
-//                 <CardTitle>Browse Aset</CardTitle>
-//                 <CardDescription>Lihat daftar aset media</CardDescription>
-//               </CardHeader>
-//               <CardContent>
-//                 <p className="text-sm text-gray-600">Jelajahi semua aset media iklan yang tersedia</p>
-//               </CardContent>
-//             </Card>
-//           )}
-//         </div>
-//       </div>
-//     </div>
-//   )
-// }
