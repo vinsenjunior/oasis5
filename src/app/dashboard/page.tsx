@@ -40,10 +40,19 @@ export default function DashboardPage() {
   const [isLoading, setIsLoading] = useState(true)
   const router = useRouter()
 
-  useEffect(() => {
+  // Optimized used effect
+ useEffect(() => {
     checkAuth()
+
+    const cached = localStorage.getItem("dashboardStats")
+    if (cached) {
+      setStats(JSON.parse(cached))
+      setIsLoading(false) // show instantly
+    }
+
     fetchStats()
   }, [])
+
 
   const checkAuth = () => {
     const isAuthenticated = localStorage.getItem("isAuthenticated")
@@ -57,6 +66,7 @@ export default function DashboardPage() {
     setUserRole(role || "")
   }
 
+<<<<<<< HEAD
   // Get cached stats if available and not expired
   const getCachedStats = (): Stats | null => {
     try {
@@ -149,16 +159,27 @@ export default function DashboardPage() {
       if (stationsRes.ok) {
         const stations = await stationsRes.json()
         newStats.totalStations = stations.length
+=======
+  // Optimized fetchstats
+  const fetchStats = async () => {
+    try {
+      const res = await fetch("/api/dashboard-stats")
+      if (res.ok) {
+        const data = await res.json()
+        setStats(data)
+        localStorage.setItem("dashboardStats", JSON.stringify(data)) // cache
+>>>>>>> 0a9597dddfeaa0389c3b617ec20c4a579d4664b4
       }
 
       setStats(newStats)
       setCachedStats(newStats)
     } catch (error) {
-      console.error('Error fetching stats:', error)
+      console.error("Error fetching stats:", error)
     } finally {
       setIsLoading(false)
     }
   }
+
 
   const handleLogout = () => {
     localStorage.removeItem("isAuthenticated")
