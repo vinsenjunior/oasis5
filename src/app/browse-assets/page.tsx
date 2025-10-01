@@ -4,14 +4,17 @@ import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Badge } from "@/components/ui/badge"
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Search, Filter, MapPin, Ruler, Zap, Calendar, User, ExternalLink } from "lucide-react"
+import { Search, Filter, MapPin, Ruler, Zap, Calendar, User, ExternalLink, Eye } from "lucide-react"
 import { format } from "date-fns"
+import { convertDriveLink } from "@/utils/gdrive";
+import Image from 'next/image'
 
 interface Asset {
   assetID: string
@@ -178,7 +181,25 @@ export default function BrowseAssetsPage() {
       assetCode: ""
     })
   }
+  
+  const [convertedUrl, setConvertedUrl] = useState("");
 
+  const convertLink = () => {
+    try {
+      const url = new URL(thumbnailUrl);
+      const id = url.searchParams.get("id");
+
+      if (id) {
+        const fileUrl = `https://drive.google.com/file/d/${id}/view?usp=sharing`;
+        setConvertedUrl(fileUrl);
+      } else {
+        setConvertedUrl("Invalid thumbnail URL. No ID found.");
+      }
+    } catch (error) {
+      setConvertedUrl("Invalid URL format.");
+    }
+  };
+  
   const getRentalStatus = (startDate: string, endDate: string) => {
     const today = new Date()
     const start = new Date(startDate)
@@ -317,7 +338,7 @@ export default function BrowseAssetsPage() {
                 <img
                   src={asset.lnkMockup}
                   alt={asset.txtDesc || asset.txtCode}
-                  className="w-full h-full object-cover"
+                  className="w-full h-full"
                 />
               ) : (
                 <div className="w-full h-full flex items-center justify-center bg-gray-100">
@@ -325,14 +346,14 @@ export default function BrowseAssetsPage() {
                 </div>
               )}
               <div className="absolute top-2 right-2 flex gap-2">
-                <Badge variant="secondary">{asset.txtCode}</Badge>
+                
                 <Button
                   size="sm"
                   variant="outline"
-                  className="h-6 px-2 text-xs"
+                  className="h-8 px-2 text-xs"
                   onClick={() => handleViewHistory(asset)}
                 >
-                  History
+                  <Eye className="w-3 h-3" />
                 </Button>
               </div>
             </div>
@@ -432,6 +453,8 @@ export default function BrowseAssetsPage() {
         </div>
       )}
 
+        
+
       {/* Rental History Dialog */}
       <Dialog open={historyDialogOpen} onOpenChange={setHistoryDialogOpen}>
         <DialogContent className="overflow-y-auto">
@@ -453,32 +476,72 @@ export default function BrowseAssetsPage() {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       {/* <h4 className="font-semibold mb-2">Detail Aset</h4> */}
-                      <div className="space-y-1 text-sm">
-                        <p><span className="font-medium">Kode:</span> {selectedAsset.txtCode}</p>
-                        <p><span className="font-medium">Stasiun:</span> {selectedAsset.txtStation}</p>
-                        <p><span className="font-medium">Media Group:</span> {selectedAsset.txtMediaGroup}</p>
-                        <p><span className="font-medium">Media Sub Group:</span> {selectedAsset.txtMediaSubGroup}</p>
-                        <p><span className="font-medium">Visual Width</span> {selectedAsset.numvisualW} m</p>
-                        <p><span className="font-medium">Visual Height</span> {selectedAsset.numvisualH} m</p>
-                        {selectedAsset.numsizeSQM && (
-                          <p><span className="font-medium">Ukuran:</span> {selectedAsset.numsizeSQM} m²</p>
-                        )}
-                      </div>
+                      <table className="min-w-full text-left text-sm whitespace-nowrap">
+                        <tbody>
+                          <tr className="">
+                            <th scope="row" className="px-6 py-3 border-x dark:border-neutral-600">
+                              Kode :
+                            </th>
+                            <td className="px-6 py-3 border-x dark:border-neutral-600">{selectedAsset.txtCode}</td>                        
+                          </tr>
+                          <tr className="bg-neutral-100 ">
+                            <th scope="row" className="px-6 py-3 border-x dark:border-neutral-600">
+                              Stasiun :
+                            </th>
+                            <td className="px-6 py-3 border-x dark:border-neutral-600">{selectedAsset.txtStation}</td>                        
+                          </tr>
+                          <tr className="">
+                            <th scope="row" className="px-6 py-3 border-x dark:border-neutral-600">
+                              Media Group :
+                            </th>
+                            <td className="px-6 py-3 border-x dark:border-neutral-600">{selectedAsset.txtMediaGroup}</td>                        
+                          </tr>
+                          <tr className="bg-neutral-100 ">
+                            <th scope="row" className="px-6 py-3 border-x dark:border-neutral-600">
+                              Media Sub Group :
+                            </th>
+                            <td className="px-6 py-3 border-x dark:border-neutral-600">{selectedAsset.txtMediaSubGroup}</td>                        
+                          </tr>
+                          <tr className="">
+                            <th scope="row" className="px-6 py-3 border-x dark:border-neutral-600">
+                              Visual Width :
+                            </th>
+                            <td className="px-6 py-3 border-x dark:border-neutral-600">{selectedAsset.numvisualW} m</td>                        
+                          </tr>
+                          <tr className="bg-neutral-100 ">
+                            <th scope="row" className="px-6 py-3 border-x dark:border-neutral-600">
+                              Visual Height :
+                            </th>
+                            <td className="px-6 py-3 border-x dark:border-neutral-600">{selectedAsset.numvisualH} m</td>                        
+                          </tr>
+                          <tr className="">
+                            <th scope="row" className="px-6 py-3 border-x dark:border-neutral-600">
+                              Visual SQM :
+                            </th>
+                            <td className="px-6 py-3 border-x dark:border-neutral-600">{selectedAsset.numvisualSQM} m²</td>                        
+                          </tr>
+
+                        </tbody>
+
+                      </table>
+                      {/* <div className="grid grid-cols-2 text-sm">
+                        <div className="font-medium">Kode:</div> <div className="col-start-2">{selectedAsset.txtCode}</div>
+                        <div className="font-medium">Stasiun:</div> <div className="col-start-2"></div>{selectedAsset.txtStation}</div>
+                        <div className="font-medium">Media Group:</div><div className="col-start-2"> {selectedAsset.txtMediaGroup}</div>
+                        <div className="font-medium">Media Sub Group:</div> <div className="col-start-2">{selectedAsset.txtMediaSubGroup}</div>
+                        <div className="font-medium">Visual Width</div><div className="col-start-2"> {selectedAsset.numvisualW} m </div>
+                        <div className="font-medium">Visual Height</div><div className="col-start-2"> {selectedAsset.numvisualH} m </div>
+                        <div className="font-medium">Visual SQM</div><div className="col-start-2">{selectedAsset.numsizeSQM} m²</div> */}
                     </div>
                     <div>
                       {/* <h4 className="font-semibold mb-2">Gambar Aset</h4> */}
-                      <div className="w-fit h-fit aspect-video bg-gray-200 rounded-lg overflow-hidden">
-                        {selectedAsset.lnkMockup ? (
-                          <img
-                            src={selectedAsset.lnkMockup}
-                            alt={selectedAsset.txtDesc || selectedAsset.txtCode}
-                            className="object-cover"
-                          />
-                        ) : (
-                          <div className="w-full h-auto flex items-center justify-center bg-gray-100">
-                            <span className="text-gray-400">No Image Available</span>
-                          </div>
-                        )}
+                      <div className="w-full h-full">
+                        
+                          <img 
+                          // src={convertDriveLink(selectedAsset.lnkMockup)} alt={selectedAsset.txtDesc && selectedAsset.txtCode}
+                          src={selectedAsset.lnkMockup} alt={selectedAsset.txtDesc && selectedAsset.txtCode }
+                          className="h-full w-full"/>
+                        
                       </div>
                     </div>
                   </div>

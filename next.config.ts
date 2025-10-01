@@ -20,6 +20,18 @@ const nextConfig: NextConfig = {
     // 构建时忽略ESLint错误
     ignoreDuringBuilds: true,
   },
+
+   images: {
+    domains: ['lh3.googleusercontent.com', 'drive.google.com', 'i.imgur.com', 'res.cloudinary.com'],
+    unoptimized: false, // Enable Next.js image optimization
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: '**',
+      },
+    ],
+  },
+  
 };
 
 export default nextConfig;
