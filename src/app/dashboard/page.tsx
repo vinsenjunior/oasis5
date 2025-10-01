@@ -36,10 +36,19 @@ export default function DashboardPage() {
   const [isLoading, setIsLoading] = useState(true)
   const router = useRouter()
 
-  useEffect(() => {
+  // Optimized used effect
+ useEffect(() => {
     checkAuth()
+
+    const cached = localStorage.getItem("dashboardStats")
+    if (cached) {
+      setStats(JSON.parse(cached))
+      setIsLoading(false) // show instantly
+    }
+
     fetchStats()
   }, [])
+
 
   const checkAuth = () => {
     const isAuthenticated = localStorage.getItem("isAuthenticated")
@@ -53,44 +62,22 @@ export default function DashboardPage() {
     setUserRole(role || "")
   }
 
+  // Optimized fetchstats
   const fetchStats = async () => {
     try {
-      const [assetsRes, clientsRes, rentalsRes, stationsRes] = await Promise.all([
-        fetch("/api/assets"),
-        fetch("/api/clients"),
-        fetch("/api/rentals"),
-        fetch("/api/assets/stations")
-      ])
-
-      if (assetsRes.ok) {
-        const assets = await assetsRes.json()
-        setStats(prev => ({ ...prev, totalAssets: assets.length }))
-      }
-
-      if (clientsRes.ok) {
-        const clients = await clientsRes.json()
-        setStats(prev => ({ ...prev, totalClients: clients.length }))
-      }
-
-      if (rentalsRes.ok) {
-        const rentals = await rentalsRes.json()
-        const today = new Date().toISOString().split('T')[0]
-        const activeRentals = rentals.filter((rental: any) => 
-          rental.datestart <= today && rental.dateend >= today
-        )
-        setStats(prev => ({ ...prev, activeRentals: activeRentals.length }))
-      }
-
-      if (stationsRes.ok) {
-        const stations = await stationsRes.json()
-        setStats(prev => ({ ...prev, totalStations: stations.length }))
+      const res = await fetch("/api/dashboard-stats")
+      if (res.ok) {
+        const data = await res.json()
+        setStats(data)
+        localStorage.setItem("dashboardStats", JSON.stringify(data)) // cache
       }
     } catch (error) {
-      console.error('Error fetching stats:', error)
+      console.error("Error fetching stats:", error)
     } finally {
       setIsLoading(false)
     }
   }
+
 
   const handleLogout = () => {
     localStorage.removeItem("isAuthenticated")
