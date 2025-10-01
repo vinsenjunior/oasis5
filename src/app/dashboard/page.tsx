@@ -66,7 +66,6 @@ export default function DashboardPage() {
     setUserRole(role || "")
   }
 
-<<<<<<< HEAD
   // Get cached stats if available and not expired
   const getCachedStats = (): Stats | null => {
     try {
@@ -159,16 +158,6 @@ export default function DashboardPage() {
       if (stationsRes.ok) {
         const stations = await stationsRes.json()
         newStats.totalStations = stations.length
-=======
-  // Optimized fetchstats
-  const fetchStats = async () => {
-    try {
-      const res = await fetch("/api/dashboard-stats")
-      if (res.ok) {
-        const data = await res.json()
-        setStats(data)
-        localStorage.setItem("dashboardStats", JSON.stringify(data)) // cache
->>>>>>> 0a9597dddfeaa0389c3b617ec20c4a579d4664b4
       }
 
       setStats(newStats)
