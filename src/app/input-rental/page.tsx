@@ -208,7 +208,7 @@ export default function InputRentalPage() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(rentalData)
         })
-        router.refresh()
+
         if (!response.ok) {
           throw new Error("Gagal menyimpan data sewa")
         }
