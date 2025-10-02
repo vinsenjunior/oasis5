@@ -15,6 +15,13 @@ export async function GET(request: Request) {
         }
       })
       
+      if (!rental) {
+        return NextResponse.json(
+          { error: "Rental not found" },
+          { status: 404 }
+        )
+      }
+      
       return NextResponse.json(rental)
     }
     
@@ -42,39 +49,47 @@ export async function POST(request: Request) {
   try {
     const body = await request.json()
     
-    // // Check for overlapping rentals
-    // const overlappingRental = await db.rentDetail.findFirst({
-    //   where: {
-    //     assetID: body.assetID,
-    //     OR: [
-    //       {
-    //         AND: [
-    //           { datestart: { lte: body.datestart } },
-    //           { dateend: { gte: body.datestart } }
-    //         ]
-    //       },
-    //       {
-    //         AND: [
-    //           { datestart: { lte: body.dateend } },
-    //           { dateend: { gte: body.dateend } }
-    //         ]
-    //       },
-    //       {
-    //         AND: [
-    //           { datestart: { gte: body.datestart } },
-    //           { dateend: { lte: body.dateend } }
-    //         ]
-    //       }
-    //     ]
-    //   }
-    // })
+    // Validate required fields
+    if (!body.assetID || !body.clientID || !body.datestart || !body.dateend) {
+      return NextResponse.json(
+        { error: "Missing required fields" },
+        { status: 400 }
+      )
+    }
     
-    // if (overlappingRental) {
-    //   return NextResponse.json(
-    //     { error: "Asset sudah disewa untuk periode tersebut" },
-    //     { status: 400 }
-    //   )
-    // }
+    // Check for overlapping rentals
+    const overlappingRental = await db.rentDetail.findFirst({
+      where: {
+        assetID: body.assetID,
+        OR: [
+          {
+            AND: [
+              { datestart: { lte: body.datestart } },
+              { dateend: { gte: body.datestart } }
+            ]
+          },
+          {
+            AND: [
+              { datestart: { lte: body.dateend } },
+              { dateend: { gte: body.dateend } }
+            ]
+          },
+          {
+            AND: [
+              { datestart: { gte: body.datestart } },
+              { dateend: { lte: body.dateend } }
+            ]
+          }
+        ]
+      }
+    })
+    
+    if (overlappingRental) {
+      return NextResponse.json(
+        { error: "Asset sudah disewa untuk periode tersebut" },
+        { status: 400 }
+      )
+    }
     
     const rental = await db.rentDetail.create({
       data: {
@@ -107,6 +122,33 @@ export async function PUT(request: Request) {
     const body = await request.json()
     const { rentid, ...updateData } = body
     
+    if (!rentid) {
+      return NextResponse.json(
+        { error: "Rent ID is required" },
+        { status: 400 }
+      )
+    }
+    
+    // Validate dates if provided
+    if (updateData.datestart && updateData.dateend) {
+      const startDate = new Date(updateData.datestart)
+      const endDate = new Date(updateData.dateend)
+      
+      if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
+        return NextResponse.json(
+          { error: "Invalid date format" },
+          { status: 400 }
+        )
+      }
+      
+      if (endDate < startDate) {
+        return NextResponse.json(
+          { error: "End date must be after start date" },
+          { status: 400 }
+        )
+      }
+    }
+    
     const rental = await db.rentDetail.update({
       where: { rentid: parseInt(rentid) },
       data: updateData,
@@ -135,6 +177,18 @@ export async function DELETE(request: Request) {
       return NextResponse.json(
         { error: "Rent ID is required" },
         { status: 400 }
+      )
+    }
+
+    // Check if rental exists before deleting
+    const rental = await db.rentDetail.findUnique({
+      where: { rentid: parseInt(rentId) }
+    })
+    
+    if (!rental) {
+      return NextResponse.json(
+        { error: "Rental not found" },
+        { status: 404 }
       )
     }
 

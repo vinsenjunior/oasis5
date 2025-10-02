@@ -13,7 +13,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger, DialogOverlay } from "@/components/ui/dialog"
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog"
 import { Textarea } from "@/components/ui/textarea"
-import { Edit, Trash2, Eye, Search, Calendar, MapPin, Users,ChevronsUpDown } from "lucide-react"
+import { Edit, Trash2, Eye, Search, Calendar, MapPin, Users, ChevronsUpDown } from "lucide-react"
 import { format } from "date-fns"
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination"
 import {
@@ -64,9 +64,6 @@ interface Client {
 }
 
 export default function ManageRentalsPage() {
-
- 
-
   const [userRole, setUserRole] = useState<string | null>(null)
   const router = useRouter()
   
@@ -81,19 +78,17 @@ export default function ManageRentalsPage() {
     clientID: "",
     station: "",
     status: "all", // all, active, expired
-    mediaGroup: "",      // Add this
+    mediaGroup: "",      
     mediaSubGroup: "",
     assetCode: "",
-    startDate: "", // Tanggal mulai filter
-    endDate: ""     // Tanggal akhir filter
+    startDate: "", 
+    endDate: ""     
   })
 
   const [clientSearch, setClientSearch] = useState("")
 
   const [currentPage, setCurrentPage] = useState(1)
   const [itemsPerPage] = useState(20)
-  // const [loading, setLoading] = useState(true)
-  //const [selectedAsset, setSelectedAsset] = useState<Asset | null>(null)
   
   const [selectedRental, setSelectedRental] = useState<Rental | null>(null)
   const [editingRental, setEditingRental] = useState<Rental | null>(null)
@@ -101,17 +96,16 @@ export default function ManageRentalsPage() {
     txtsales: "",
     lnkreport: "",
     txtnotes: "",
-    datestart: "",  // Tambahkan ini
-    dateend: ""     // Tambahkan ini
+    datestart: "",  
+    dateend: ""     
   })
   
-  const [loading, setLoading] = useState(false)
+  const [loading, setLoading] = useState(true)
   const [deleteLoading, setDeleteLoading] = useState(false)
   const [error, setError] = useState("")
   const [success, setSuccess] = useState("")
 
   // Fungsi pembantu tanggal
-  // Tambahkan fungsi pembantu untuk memformat tanggal dengan aman
   const formatDate = (dateString: string | null | undefined) => {
     if (!dateString) return "--";
     try {
@@ -122,17 +116,21 @@ export default function ManageRentalsPage() {
     }
   };
 
+  // Check authentication on client side only
   useEffect(() => {
-    const isAuthenticated = localStorage.getItem("isAuthenticated")
-    const role = localStorage.getItem("userRole")
-    
-    // if (!isAuthenticated || role !== "admin") {
-    //   router.push("/login")
-    //   return
-    // }
-    
-    setUserRole(role)
-    fetchData()
+    if (typeof window !== 'undefined') {
+      const isAuthenticated = localStorage.getItem("isAuthenticated")
+      const role = localStorage.getItem("userRole")
+      
+      setUserRole(role)
+      
+      if (!isAuthenticated || role !== "admin") {
+        router.push("/login")
+        return
+      }
+      
+      fetchData()
+    }
   }, [router])
 
   useEffect(() => {
@@ -140,9 +138,13 @@ export default function ManageRentalsPage() {
   }, [filters, rentals])
 
   const fetchData = async () => {
+    setLoading(true)
     try {
       // Fetch rentals with joined data
       const rentalsResponse = await fetch("/api/rentals")
+      if (!rentalsResponse.ok) {
+        throw new Error("Failed to fetch rentals")
+      }
       const rentalsData = await rentalsResponse.json()
       setRentals(rentalsData)
       
@@ -169,98 +171,98 @@ export default function ManageRentalsPage() {
       
     } catch (err) {
       setError("Gagal memuat data")
+      console.error("Fetch error:", err)
+    } finally {
+      setLoading(false)
     }
   }
 
-  // Fungsi untuk menerapkan filter
-  // Perbaiki fungsi applyFilters
-    const applyFilters = () => {
-      let filtered = rentals
+  const applyFilters = () => {
+    let filtered = rentals
 
-      // Filter client
-      if (filters.clientID) {
-        filtered = filtered.filter(rental => rental.clientID.toString() === filters.clientID)
-      }
+    // Filter client
+    if (filters.clientID) {
+      filtered = filtered.filter(rental => rental.clientID.toString() === filters.clientID)
+    }
 
-      // Filter station
-      if (filters.station) {
-        filtered = filtered.filter(rental => rental.asset.txtStation === filters.station)
-      }
-      
-      // Filter media group
-      if (filters.mediaGroup) {
-        filtered = filtered.filter(rental => rental.asset.txtMediaGroup === filters.mediaGroup)
-      }
-      
-      // Filter media sub group
-      if (filters.mediaSubGroup) {
-        filtered = filtered.filter(rental => rental.asset.txtMediaSubGroup === filters.mediaSubGroup)
-      }
-      
-      // Filter kode aset
-      if (filters.assetCode) {
-        filtered = filtered.filter((rental) =>
-          rental.asset.txtCode
-            .toLowerCase()
-            .includes(filters.assetCode.toLowerCase())
-        )
-      }
+    // Filter station
+    if (filters.station) {
+      filtered = filtered.filter(rental => rental.asset.txtStation === filters.station)
+    }
+    
+    // Filter media group
+    if (filters.mediaGroup) {
+      filtered = filtered.filter(rental => rental.asset.txtMediaGroup === filters.mediaGroup)
+    }
+    
+    // Filter media sub group
+    if (filters.mediaSubGroup) {
+      filtered = filtered.filter(rental => rental.asset.txtMediaSubGroup === filters.mediaSubGroup)
+    }
+    
+    // Filter kode aset
+    if (filters.assetCode) {
+      filtered = filtered.filter((rental) =>
+        rental.asset.txtCode
+          .toLowerCase()
+          .includes(filters.assetCode.toLowerCase())
+      )
+    }
 
-      // Filter status
-      if (filters.status !== "all") {
-        const today = new Date()
-        if (filters.status === "active") {
-          filtered = filtered.filter(rental => {
-            if (!rental.datestart || !rental.dateend) return false
-            const start = new Date(rental.datestart)
-            const end = new Date(rental.dateend)
-            return end >= today && start <= today
-          })
-        } else if (filters.status === "expired") {
-          filtered = filtered.filter(rental => {
-            if (!rental.dateend) return false
-            const end = new Date(rental.dateend)
-            return end < today
-          })
-        } else if (filters.status === "booked") {
-          filtered = filtered.filter(rental => {
-            if (!rental.datestart) return false
-            const start = new Date(rental.datestart)
-            return start > today
-          })
-        }
-      }
-
-      // Filter periode tanggal
-      if (filters.startDate && filters.endDate) {
-        const startDate = new Date(filters.startDate)
-        const endDate = new Date(filters.endDate)
-        
-        // Set jam ke 00:00:00 untuk startDate dan 23:59:59 untuk endDate
-        startDate.setHours(0, 0, 0, 0)
-        endDate.setHours(23, 59, 59, 999)
-        
+    // Filter status
+    if (filters.status !== "all") {
+      const today = new Date()
+      if (filters.status === "active") {
         filtered = filtered.filter(rental => {
-          // Lewati jika tanggal rental kosong
           if (!rental.datestart || !rental.dateend) return false
-          
-          const rentalStart = new Date(rental.datestart)
-          const rentalEnd = new Date(rental.dateend)
-          
-          // Cek apakah periode rental tumpang tindih dengan periode filter
-          return rentalStart <= endDate && rentalEnd >= startDate
+          const start = new Date(rental.datestart)
+          const end = new Date(rental.dateend)
+          return end >= today && start <= today
+        })
+      } else if (filters.status === "expired") {
+        filtered = filtered.filter(rental => {
+          if (!rental.dateend) return false
+          const end = new Date(rental.dateend)
+          return end < today
+        })
+      } else if (filters.status === "booked") {
+        filtered = filtered.filter(rental => {
+          if (!rental.datestart) return false
+          const start = new Date(rental.datestart)
+          return start > today
         })
       }
-
-      setFilteredRentals(filtered)
-      setCurrentPage(1)
     }
+
+    // Filter periode tanggal
+    if (filters.startDate && filters.endDate) {
+      const startDate = new Date(filters.startDate)
+      const endDate = new Date(filters.endDate)
+      
+      // Set jam ke 00:00:00 untuk startDate dan 23:59:59 untuk endDate
+      startDate.setHours(0, 0, 0, 0)
+      endDate.setHours(23, 59, 59, 999)
+      
+      filtered = filtered.filter(rental => {
+        // Lewati jika tanggal rental kosong
+        if (!rental.datestart || !rental.dateend) return false
+        
+        const rentalStart = new Date(rental.datestart)
+        const rentalEnd = new Date(rental.dateend)
+        
+        // Cek apakah periode rental tumpang tindih dengan periode filter
+        return rentalStart <= endDate && rentalEnd >= startDate
+      })
+    }
+
+    setFilteredRentals(filtered)
+    setCurrentPage(1)
+  }
 
   const handleFilterChange = (key: string, value: string) => {
     setFilters(prev => ({ ...prev, [key]: value }))
   }
   
-  // fungsi untuk menghapus filter tertentu
   const removeFilter = (filterType: string) => {
     switch (filterType) {
       case "clientID":
@@ -292,19 +294,19 @@ export default function ManageRentalsPage() {
   }
 
   const clearFilters = () => {
-  setFilters({
-    clientID: "",
-    station: "",
-    mediaGroup: "",
-    mediaSubGroup: "",
-    status: "all",
-    assetCode: "",
-    startDate: "",
-    endDate: ""
+    setFilters({
+      clientID: "",
+      station: "",
+      mediaGroup: "",
+      mediaSubGroup: "",
+      status: "all",
+      assetCode: "",
+      startDate: "",
+      endDate: ""
     })  
     setClientSearch("");
   }
-  // Parameter untuk pagination
+
   const totalPages = Math.ceil(filteredRentals.length / itemsPerPage)
   const startIndex = (currentPage - 1) * itemsPerPage
   const currentAssets = filteredRentals.slice(startIndex, startIndex + itemsPerPage)
@@ -337,20 +339,20 @@ export default function ManageRentalsPage() {
         throw new Error("Tanggal selesai harus setelah tanggal mulai")
       }
 
-      const response = await fetch(`/api/rentals`, {
+      const response = await fetch("/api/rentals", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           rentid: editingRental.rentid,
           ...editForm,
-          // Konversi tanggal ke format ISO jika ada
           datestart: editForm.datestart ? new Date(editForm.datestart).toISOString() : null,
           dateend: editForm.dateend ? new Date(editForm.dateend).toISOString() : null
         })
       })
 
       if (!response.ok) {
-        throw new Error("Gagal update data sewa")
+        const errorData = await response.json()
+        throw new Error(errorData.error || "Gagal update data sewa")
       }
 
       setSuccess("Data sewa berhasil diupdate")
@@ -374,7 +376,8 @@ export default function ManageRentalsPage() {
       })
 
       if (!response.ok) {
-        throw new Error("Gagal hapus data sewa")
+        const errorData = await response.json()
+        throw new Error(errorData.error || "Gagal hapus data sewa")
       }
 
       setSuccess("Data sewa berhasil dihapus")
@@ -387,8 +390,6 @@ export default function ManageRentalsPage() {
     }
   }
 
-  // Fungsi untuk mendapatkan badge status
-  // Perbaiki fungsi getStatusBadge
   const getStatusBadge = (startDate: string | null, endDate: string | null) => {
     const today = new Date();
     
@@ -412,28 +413,19 @@ export default function ManageRentalsPage() {
     }
   };
 
-  if (!userRole) {
-    return <div>Loading...</div>
-  }
-
-  // Fungsi untuk menghasilkan nomor halaman yang akan ditampilkan
   const generatePaginationItems = (currentPage: number, totalPages: number) => {
-    // Jika total halaman <= 7, tampilkan semua
     if (totalPages <= 7) {
       return Array.from({ length: totalPages }, (_, i) => i + 1)
     }
     
-    // Jika halaman aktif di awal (1-4)
     if (currentPage <= 4) {
       return [1, 2, 3, 4, 5, 6, '...', totalPages]
     }
     
-    // Jika halaman aktif di akhir (total-3 hingga total)
     if (currentPage >= totalPages - 3) {
       return [1, '...', totalPages - 5, totalPages - 4, totalPages - 3, totalPages - 2, totalPages - 1, totalPages]
     }
     
-    // Jika halaman aktif di tengah
     return [
       1, 
       '...', 
@@ -445,6 +437,17 @@ export default function ManageRentalsPage() {
       '...', 
       totalPages
     ]
+  }
+
+  if (!userRole) {
+    return (
+      <div className="min-h-screen bg-gray-50 p-4 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Memuat data...</p>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -657,11 +660,9 @@ export default function ManageRentalsPage() {
                     onChange={(e) => handleFilterChange("startDate", e.target.value)}
                     onClick={(e) => {
                       e.stopPropagation();
-                      // Force show picker
                       (e.target as HTMLInputElement).showPicker?.();
                     }}
                     className="w-full"
-                    // Tambahkan atribut ini
                     data-testid="start-date"
                   />
                   <span className="self-center text-gray-500">-</span>
@@ -678,12 +679,10 @@ export default function ManageRentalsPage() {
                     }}
                     onClick={(e) => {
                       e.stopPropagation();
-                      // Force show picker
                       (e.target as HTMLInputElement).showPicker?.();
                     }}
                     min={filters.startDate || undefined}
                     className="w-full"
-                    // Tambahkan atribut ini
                     data-testid="end-date"
                   />
                 </div>
@@ -699,10 +698,8 @@ export default function ManageRentalsPage() {
           </CardContent>
         </Card>
 
-        {/* Results Section */}
-       {/* Indikator Filter Aktif */}
+        {/* Indikator Filter Aktif */}
         <div className="mb-4 flex flex-wrap gap-2 items-center">
-          {/* Filter Client */}
           {filters.clientID && (
             <Badge variant="secondary" className="flex items-center gap-1">
               <Users className="w-3 h-3" />
@@ -719,7 +716,6 @@ export default function ManageRentalsPage() {
             </Badge>
           )}
           
-          {/* Filter Station */}
           {filters.station && (
             <Badge variant="secondary" className="flex items-center gap-1">
               <MapPin className="w-3 h-3" />
@@ -733,7 +729,6 @@ export default function ManageRentalsPage() {
             </Badge>
           )}
 
-          {/* Filter Media Group */}
           {filters.mediaGroup && (
             <Badge variant="secondary" className="flex items-center gap-1">
               Media Group: {filters.mediaGroup}
@@ -746,7 +741,6 @@ export default function ManageRentalsPage() {
             </Badge>
           )}
 
-          {/* Filter Media Sub Group */}
           {filters.mediaSubGroup && (
             <Badge variant="secondary" className="flex items-center gap-1">
               Media Sub Group: {filters.mediaSubGroup}
@@ -759,7 +753,6 @@ export default function ManageRentalsPage() {
             </Badge>
           )}
 
-          {/* Filter Kode Aset */}
           {filters.assetCode && (
             <Badge variant="secondary" className="flex items-center gap-1">
               Kode: {filters.assetCode}
@@ -772,7 +765,6 @@ export default function ManageRentalsPage() {
             </Badge>
           )}
           
-          {/* Filter Status */}
           {filters.status !== "all" && (
             <Badge variant="secondary" className="flex items-center gap-1">
               Status: {filters.status === "active" ? "Aktif" : filters.status === "booked" ? "Booked" : "Selesai"}
@@ -785,7 +777,6 @@ export default function ManageRentalsPage() {
             </Badge>
           )}
           
-          {/* Filter Periode Tanggal */}
           {filters.startDate && filters.endDate && (
             <Badge variant="secondary" className="flex items-center gap-1">
               <Calendar className="w-3 h-3" />
@@ -814,335 +805,285 @@ export default function ManageRentalsPage() {
           </div>
         </div>
 
-
-
-
         {/* Rentals Table */}
-        
         <Card>
           <CardContent className="p-0">
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Rent ID</TableHead>
-                    <TableHead>Client</TableHead>
-                    <TableHead>Aset</TableHead>
-                    <TableHead>Stasiun</TableHead>
-                    <TableHead>Periode</TableHead>
-                    <TableHead>Sales</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Aksi</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {currentAssets.map((rental) => (
-                    <TableRow key={rental.rentid}>
-                      <TableCell className="font-medium">#{rental.rentid}</TableCell>
-                      <TableCell>
-                        <div>
-                          <div className="font-medium">{rental.client.txtClient}</div>
-                          {rental.client.txtCompany && (
-                            <div className="text-sm text-gray-500">{rental.client.txtCompany}</div>
-                          )}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div>
-                          <div className="font-medium">{rental.asset.txtCode}</div>
-                          <div className="text-xs text-gray-500">{rental.asset.kodetitik}</div>
-                        </div>
-                      </TableCell>
-                      <TableCell>{rental.asset.txtStation}</TableCell>
-                      <TableCell>
-                        <div className="text-sm">
-                          <div>{formatDate(rental.datestart)}</div>
-                          <div className="text-gray-500">s/d {formatDate(rental.dateend)}</div>
-                        </div>
-                      </TableCell>
-                      <TableCell>{rental.txtsales || "-"}</TableCell>
-                      <TableCell>{getStatusBadge(rental.datestart, rental.dateend)}</TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          <Dialog>
-                            <DialogTrigger asChild>
-                              <Button variant="outline" size="sm" onClick={() => setSelectedRental(rental)}>
-                                <Eye className="w-4 h-4" />
-                              </Button>
-                            </DialogTrigger>
-                            <DialogContent className="max-w-2xl">
-                              <DialogHeader>
-                                <DialogTitle>Detail Sewa #{rental.rentid}</DialogTitle>
-                              </DialogHeader>
-                              <div className="grid grid-cols-2 gap-4">
-                                <div>
-                                  <Label className="text-sm font-medium">Client</Label>
-                                  <p>{rental.client.txtClient}</p>
-                                  {rental.client.txtCompany && <p className="text-sm text-gray-500">{rental.client.txtCompany}</p>}
-                                </div>
-                                <div>
-                                  <Label className="text-sm font-medium">Sales</Label>
-                                  <p>{rental.txtsales || "-"}</p>
-                                </div>
-                                <div>
-                                  <Label className="text-sm font-medium">Aset</Label>
-                                  <p>{rental.asset.txtCode}</p>
-                                  <p className="text-sm text-gray-500">{rental.asset.kodetitik}</p>
-                                </div>
-                                <div>
-                                  <Label className="text-sm font-medium">Stasiun</Label>
-                                  <p>{rental.asset.txtStation}</p>
-                                </div>
-                                <div>
-                                  <Label className="text-sm font-medium">Media Group</Label>
-                                  <p>{rental.asset.txtMediaGroup}</p>
-                                </div>
-                                <div>
-                                  <Label className="text-sm font-medium">Media Sub Group</Label>
-                                  <p>{rental.asset.txtMediaSubGroup}</p>
-                                </div>
-                               <div className="col-span-2">
-                                <Label className="text-sm font-medium">Periode Sewa</Label>
-                                <p className="flex items-center gap-2">
-                                  <Calendar className="w-4 h-4" />
-                                  {formatDate(rental.datestart)} - {formatDate(rental.dateend)}
-                                </p>
-                              </div>
-                                {rental.lnkreport && (
-                                  <div className="col-span-2">
-                                    <Label className="text-sm font-medium">Link Report</Label>
-                                    <a href={rental.lnkreport} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
-                                      {rental.lnkreport}
-                                    </a>
-                                  </div>
-                                )}
-                                {rental.txtnotes && (
-                                  <div className="col-span-2">
-                                    <Label className="text-sm font-medium">Catatan</Label>
-                                    <p className="mt-1">{rental.txtnotes}</p>
-                                  </div>
-                                )}
-                              </div>
-                            </DialogContent>
-                          </Dialog>
-
-                          {/* <Dialog>
-                            <DialogTrigger asChild>
-                              <Button variant="outline" size="sm" onClick={() => handleEdit(rental)}>
-                                <Edit className="w-4 h-4" />
-                              </Button>
-                            </DialogTrigger>
-                            <DialogContent>
-                              <DialogHeader>
-                                <DialogTitle>Edit Data Sewa #{rental.rentid}</DialogTitle>
-                                <DialogDescription>
-                                  Update informasi sewa aset
-                                </DialogDescription>
-                              </DialogHeader>
-                              <div className="space-y-4">
-                                <div className="space-y-2">
-                                  <Label htmlFor="txtsales">Nama Sales</Label>
-                                  <Input
-                                    id="txtsales"
-                                    value={editForm.txtsales}
-                                    onChange={(e) => setEditForm(prev => ({ ...prev, txtsales: e.target.value }))}
-                                  />
-                                </div>
-                                <div className="space-y-2">
-                                  <Label htmlFor="lnkreport">Link Report</Label>
-                                  <Input
-                                    id="lnkreport"
-                                    value={editForm.lnkreport}
-                                    onChange={(e) => setEditForm(prev => ({ ...prev, lnkreport: e.target.value }))}
-                                  />
-                                </div>
-                                <div className="space-y-2">
-                                  <Label htmlFor="txtnotes">Catatan</Label>
-                                  <Textarea
-                                    id="txtnotes"
-                                    value={editForm.txtnotes}
-                                    onChange={(e) => setEditForm(prev => ({ ...prev, txtnotes: e.target.value }))}
-                                    rows={3}
-                                  />
-                                </div>
-                              </div>
-                              <DialogFooter>
-                                <Button variant="outline" onClick={() => setEditingRental(null)}>
-                                  Batal
-                                </Button>
-                                <Button onClick={handleUpdate} disabled={loading}>
-                                  {loading ? "Loading..." : "Update"}
-                                </Button>
-                              </DialogFooter>
-                            </DialogContent>
-                          </Dialog> */}
-                          
-                          {/* Dialog Edit Data Sewa */}
-
-                          
-                          <Dialog open={!!editingRental} onOpenChange={(open) => !open && setEditingRental(null)}>
-                            <DialogTrigger asChild>
-                              <Button variant="outline" size="sm" onClick={() => handleEdit(rental)}>
-                                <Edit className="w-4 h-4" />
-                              </Button>
-                            </DialogTrigger>
-                            
-                            <DialogContent className="max-w-2xl">
-                              <DialogHeader>
-                                <DialogTitle>Edit Data Sewa #{editingRental?.rentid}</DialogTitle>
-                                <DialogDescription>
-                                  Update informasi sewa aset
-                                </DialogDescription>
-                              </DialogHeader>
-
-                              <div className="space-y-4">
-                                {/* Input Tanggal Start */}
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div className="space-y-2">
-                                      <Label htmlFor="datestart">Tanggal Mulai Sewa</Label>
-                                      <Input
-                                        id="datestart"
-                                        type="date"
-                                        value={editForm.datestart}
-                                        onChange={(e) => {
-                                          setEditForm(prev => ({ ...prev, datestart: e.target.value }))
-                                          // Reset tanggal end jika lebih kecil dari tanggal start baru
-                                          if (editForm.dateend && e.target.value > editForm.dateend) {
-                                            setEditForm(prev => ({ ...prev, dateend: "" }))
-                                          }
-                                        }}
-                                      />
-                                      {/* badge diubah jika berbeda dari data awal */}
-                                      {editingRental && editForm.datestart !== format(new Date(editingRental.datestart), "yyyy-MM-dd") && (
-                                          <Badge variant="secondary">Diubah</Badge>
-                                        )}
-                                    </div>
-
-                                    {/* Input Tanggal End */}
-                                    <div className="space-y-2">
-                                      <Label htmlFor="dateend">Tanggal Selesai Sewa</Label>
-                                      <Input
-                                        id="dateend"
-                                        type="date"
-                                        value={editForm.dateend}
-                                        onChange={(e) => setEditForm(prev => ({ ...prev, dateend: e.target.value }))}
-                                        min={editForm.datestart || undefined}
-                                        disabled={!editForm.datestart}
-                                      />
-                                      {!editForm.datestart && (
-                                        <p className="text-sm text-red-500">Pilih tanggal mulai terlebih dahulu</p>
-                                      )}
-                                      {editForm.datestart && editForm.dateend && new Date(editForm.dateend) < new Date(editForm.datestart) && (
-                                        <p className="text-sm text-red-500">Tanggal selesai harus setelah tanggal mulai</p>
-                                      )}
-                                    </div>
-                                </div>
-
-                                {/* Input Sales */}
-                                <div className="space-y-2">
-                                  <Label htmlFor="txtsales">Nama Sales</Label>
-                                  <Input
-                                    id="txtsales"
-                                    value={editForm.txtsales}
-                                    onChange={(e) => setEditForm(prev => ({ ...prev, txtsales: e.target.value }))}
-                                  />
-                                </div>
-
-                                {/* Input Link Report */}
-                                <div className="space-y-2">
-                                  <Label htmlFor="lnkreport">Link Report</Label>
-                                  <Input
-                                    id="lnkreport"
-                                    value={editForm.lnkreport}
-                                    onChange={(e) => setEditForm(prev => ({ ...prev, lnkreport: e.target.value }))}
-                                  />
-                                </div>
-
-                                {/* Input Catatan */}
-                                <div className="space-y-2">
-                                  <Label htmlFor="txtnotes">Catatan</Label>
-                                  <Textarea
-                                    id="txtnotes"
-                                    value={editForm.txtnotes}
-                                    onChange={(e) => setEditForm(prev => ({ ...prev, txtnotes: e.target.value }))}
-                                    rows={3}
-                                  />
-                                </div>
-                              </div>
-
-                              <DialogFooter>
-                                <Button variant="outline" onClick={() => setEditingRental(null)}>
-                                  Batal
-                                </Button>
-
-                                {/* Tombol Update dengan konfirmasi */}
-                                <AlertDialog>
-                                  <AlertDialogTrigger asChild>
-                                    <Button 
-                                      disabled={loading || !editForm.datestart || !editForm.dateend || 
-                                              (editForm.datestart && editForm.dateend && new Date(editForm.dateend) < new Date(editForm.datestart))}
-                                    >
-                                      {loading ? "Loading..." : "Update"}
-                                    </Button>
-                                  </AlertDialogTrigger>
-                                  <AlertDialogContent>
-                                    <AlertDialogHeader>
-                                      <AlertDialogTitle>Konfirmasi Update</AlertDialogTitle>
-                                      <AlertDialogDescription>
-                                        Apakah Anda yakin ingin menyimpan perubahan data sewa ini?
-                                      </AlertDialogDescription>
-                                    </AlertDialogHeader>
-                                    <AlertDialogFooter>
-                                      <AlertDialogCancel>Batal</AlertDialogCancel>
-                                      <AlertDialogAction
-                                        onClick={async () => {
-                                          await handleUpdate()
-                                          setEditingRental(null) // tutup setelah sukses
-                                        }}
-                                      >
-                                        Ya, Simpan
-                                      </AlertDialogAction>
-                                    </AlertDialogFooter>
-                                  </AlertDialogContent>
-                                </AlertDialog>
-                              </DialogFooter>
-                            </DialogContent>
-                          </Dialog>
-
-                          {/* Dialog konfirmasi hapus */}
-                          <AlertDialog>
-                            <AlertDialogTrigger asChild>
-                              <Button variant="destructive" size="sm">
-                                <Trash2 className="w-4 h-4" />
-                              </Button>
-                            </AlertDialogTrigger>
-                            <AlertDialogContent>
-                              <AlertDialogHeader>
-                                <AlertDialogTitle>Konfirmasi Hapus Data</AlertDialogTitle>
-                                <AlertDialogDescription>
-                                  Apakah Anda yakin ingin menghapus data sewa #{rental.rentid}? 
-                                  Tindakan ini tidak dapat dibatalkan.
-                                </AlertDialogDescription>
-                              </AlertDialogHeader>
-                              <AlertDialogFooter>
-                                <AlertDialogCancel>Batal</AlertDialogCancel>
-                                <AlertDialogAction 
-                                  onClick={() => handleDelete(rental.rentid)}
-                                  disabled={deleteLoading}
-                                  className="bg-red-600 hover:bg-red-700"
-                                >
-                                  {deleteLoading ? "Loading..." : "Hapus"}
-                                </AlertDialogAction>
-                              </AlertDialogFooter>
-                            </AlertDialogContent>
-                          </AlertDialog>
-                        </div>
-                      </TableCell>
+            {loading ? (
+              <div className="flex justify-center items-center py-12">
+                <div className="text-center">
+                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900 mx-auto"></div>
+                  <p className="mt-4 text-gray-600">Memuat data sewa...</p>
+                </div>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Rent ID</TableHead>
+                      <TableHead>Client</TableHead>
+                      <TableHead>Aset</TableHead>
+                      <TableHead>Stasiun</TableHead>
+                      <TableHead>Periode</TableHead>
+                      <TableHead>Sales</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Aksi</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
+                  </TableHeader>
+                  <TableBody>
+                    {currentAssets.length > 0 ? (
+                      currentAssets.map((rental) => (
+                        <TableRow key={rental.rentid}>
+                          <TableCell className="font-medium">#{rental.rentid}</TableCell>
+                          <TableCell>
+                            <div>
+                              <div className="font-medium">{rental.client.txtClient}</div>
+                              {rental.client.txtCompany && (
+                                <div className="text-sm text-gray-500">{rental.client.txtCompany}</div>
+                              )}
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <div>
+                              <div className="font-medium">{rental.asset.txtCode}</div>
+                              <div className="text-xs text-gray-500">{rental.asset.kodetitik}</div>
+                            </div>
+                          </TableCell>
+                          <TableCell>{rental.asset.txtStation}</TableCell>
+                          <TableCell>
+                            <div className="text-sm">
+                              <div>{formatDate(rental.datestart)}</div>
+                              <div className="text-gray-500">s/d {formatDate(rental.dateend)}</div>
+                            </div>
+                          </TableCell>
+                          <TableCell>{rental.txtsales || "-"}</TableCell>
+                          <TableCell>{getStatusBadge(rental.datestart, rental.dateend)}</TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-2">
+                              <Dialog>
+                                <DialogTrigger asChild>
+                                  <Button variant="outline" size="sm" onClick={() => setSelectedRental(rental)}>
+                                    <Eye className="w-4 h-4" />
+                                  </Button>
+                                </DialogTrigger>
+                                <DialogContent className="max-w-2xl">
+                                  <DialogHeader>
+                                    <DialogTitle>Detail Sewa #{rental.rentid}</DialogTitle>
+                                  </DialogHeader>
+                                  <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                      <Label className="text-sm font-medium">Client</Label>
+                                      <p>{rental.client.txtClient}</p>
+                                      {rental.client.txtCompany && <p className="text-sm text-gray-500">{rental.client.txtCompany}</p>}
+                                    </div>
+                                    <div>
+                                      <Label className="text-sm font-medium">Sales</Label>
+                                      <p>{rental.txtsales || "-"}</p>
+                                    </div>
+                                    <div>
+                                      <Label className="text-sm font-medium">Aset</Label>
+                                      <p>{rental.asset.txtCode}</p>
+                                      <p className="text-sm text-gray-500">{rental.asset.kodetitik}</p>
+                                    </div>
+                                    <div>
+                                      <Label className="text-sm font-medium">Stasiun</Label>
+                                      <p>{rental.asset.txtStation}</p>
+                                    </div>
+                                    <div>
+                                      <Label className="text-sm font-medium">Media Group</Label>
+                                      <p>{rental.asset.txtMediaGroup}</p>
+                                    </div>
+                                    <div>
+                                      <Label className="text-sm font-medium">Media Sub Group</Label>
+                                      <p>{rental.asset.txtMediaSubGroup}</p>
+                                    </div>
+                                   <div className="col-span-2">
+                                    <Label className="text-sm font-medium">Periode Sewa</Label>
+                                    <p className="flex items-center gap-2">
+                                      <Calendar className="w-4 h-4" />
+                                      {formatDate(rental.datestart)} - {formatDate(rental.dateend)}
+                                    </p>
+                                  </div>
+                                    {rental.lnkreport && (
+                                      <div className="col-span-2">
+                                        <Label className="text-sm font-medium">Link Report</Label>
+                                        <a href={rental.lnkreport} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
+                                          {rental.lnkreport}
+                                        </a>
+                                      </div>
+                                    )}
+                                    {rental.txtnotes && (
+                                      <div className="col-span-2">
+                                        <Label className="text-sm font-medium">Catatan</Label>
+                                        <p className="mt-1">{rental.txtnotes}</p>
+                                      </div>
+                                    )}
+                                  </div>
+                                </DialogContent>
+                              </Dialog>
+
+                              <Dialog open={!!editingRental} onOpenChange={(open) => !open && setEditingRental(null)}>
+                                <DialogTrigger asChild>
+                                  <Button variant="outline" size="sm" onClick={() => handleEdit(rental)}>
+                                    <Edit className="w-4 h-4" />
+                                  </Button>
+                                </DialogTrigger>
+                                
+                                <DialogContent className="max-w-2xl">
+                                  <DialogHeader>
+                                    <DialogTitle>Edit Data Sewa #{editingRental?.rentid}</DialogTitle>
+                                    <DialogDescription>
+                                      Update informasi sewa aset
+                                    </DialogDescription>
+                                  </DialogHeader>
+
+                                  <div className="space-y-4">
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div className="space-y-2">
+                                          <Label htmlFor="datestart">Tanggal Mulai Sewa</Label>
+                                          <Input
+                                            id="datestart"
+                                            type="date"
+                                            value={editForm.datestart}
+                                            onChange={(e) => {
+                                              setEditForm(prev => ({ ...prev, datestart: e.target.value }))
+                                              if (editForm.dateend && e.target.value > editForm.dateend) {
+                                                setEditForm(prev => ({ ...prev, dateend: "" }))
+                                              }
+                                            }}
+                                          />
+                                          {editingRental && editForm.datestart !== format(new Date(editingRental.datestart), "yyyy-MM-dd") && (
+                                              <Badge variant="secondary">Diubah</Badge>
+                                            )}
+                                        </div>
+
+                                        <div className="space-y-2">
+                                          <Label htmlFor="dateend">Tanggal Selesai Sewa</Label>
+                                          <Input
+                                            id="dateend"
+                                            type="date"
+                                            value={editForm.dateend}
+                                            onChange={(e) => setEditForm(prev => ({ ...prev, dateend: e.target.value }))}
+                                            min={editForm.datestart || undefined}
+                                            disabled={!editForm.datestart}
+                                          />
+                                          {!editForm.datestart && (
+                                            <p className="text-sm text-red-500">Pilih tanggal mulai terlebih dahulu</p>
+                                          )}
+                                          {editForm.datestart && editForm.dateend && new Date(editForm.dateend) < new Date(editForm.datestart) && (
+                                            <p className="text-sm text-red-500">Tanggal selesai harus setelah tanggal mulai</p>
+                                          )}
+                                        </div>
+                                    </div>
+
+                                    <div className="space-y-2">
+                                      <Label htmlFor="txtsales">Nama Sales</Label>
+                                      <Input
+                                        id="txtsales"
+                                        value={editForm.txtsales}
+                                        onChange={(e) => setEditForm(prev => ({ ...prev, txtsales: e.target.value }))}
+                                      />
+                                    </div>
+
+                                    <div className="space-y-2">
+                                      <Label htmlFor="lnkreport">Link Report</Label>
+                                      <Input
+                                        id="lnkreport"
+                                        value={editForm.lnkreport}
+                                        onChange={(e) => setEditForm(prev => ({ ...prev, lnkreport: e.target.value }))}
+                                      />
+                                    </div>
+
+                                    <div className="space-y-2">
+                                      <Label htmlFor="txtnotes">Catatan</Label>
+                                      <Textarea
+                                        id="txtnotes"
+                                        value={editForm.txtnotes}
+                                        onChange={(e) => setEditForm(prev => ({ ...prev, txtnotes: e.target.value }))}
+                                        rows={3}
+                                      />
+                                    </div>
+                                  </div>
+
+                                  <DialogFooter>
+                                    <Button variant="outline" onClick={() => setEditingRental(null)}>
+                                      Batal
+                                    </Button>
+
+                                    <AlertDialog>
+                                      <AlertDialogTrigger asChild>
+                                        <Button 
+                                          disabled={loading || !editForm.datestart || !editForm.dateend || 
+                                                  (editForm.datestart && editForm.dateend && new Date(editForm.dateend) < new Date(editForm.datestart))}
+                                        >
+                                          {loading ? "Loading..." : "Update"}
+                                        </Button>
+                                      </AlertDialogTrigger>
+                                      <AlertDialogContent>
+                                        <AlertDialogHeader>
+                                          <AlertDialogTitle>Konfirmasi Update</AlertDialogTitle>
+                                          <AlertDialogDescription>
+                                            Apakah Anda yakin ingin menyimpan perubahan data sewa ini?
+                                          </AlertDialogDescription>
+                                        </AlertDialogHeader>
+                                        <AlertDialogFooter>
+                                          <AlertDialogCancel>Batal</AlertDialogCancel>
+                                          <AlertDialogAction
+                                            onClick={async () => {
+                                              await handleUpdate()
+                                              setEditingRental(null)
+                                            }}
+                                          >
+                                            Ya, Simpan
+                                          </AlertDialogAction>
+                                        </AlertDialogFooter>
+                                      </AlertDialogContent>
+                                    </AlertDialog>
+                                  </DialogFooter>
+                                </DialogContent>
+                              </Dialog>
+
+                              <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                  <Button variant="destructive" size="sm">
+                                    <Trash2 className="w-4 h-4" />
+                                  </Button>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent>
+                                  <AlertDialogHeader>
+                                    <AlertDialogTitle>Konfirmasi Hapus Data</AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                      Apakah Anda yakin ingin menghapus data sewa #{rental.rentid}? 
+                                      Tindakan ini tidak dapat dibatalkan.
+                                    </AlertDialogDescription>
+                                  </AlertDialogHeader>
+                                  <AlertDialogFooter>
+                                    <AlertDialogCancel>Batal</AlertDialogCancel>
+                                    <AlertDialogAction 
+                                      onClick={() => handleDelete(rental.rentid)}
+                                      disabled={deleteLoading}
+                                      className="bg-red-600 hover:bg-red-700"
+                                    >
+                                      {deleteLoading ? "Loading..." : "Hapus"}
+                                    </AlertDialogAction>
+                                  </AlertDialogFooter>
+                                </AlertDialogContent>
+                              </AlertDialog>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    ) : (
+                      <TableRow>
+                        <TableCell colSpan={8} className="text-center py-8">
+                          <p className="text-gray-500">Tidak ada data sewa yang ditemukan</p>
+                        </TableCell>
+                      </TableRow>
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
+            )}
           </CardContent>
         </Card>
 
@@ -1158,27 +1099,21 @@ export default function ManageRentalsPage() {
                   />
                 </PaginationItem>
                 
-                {generatePaginationItems(currentPage, totalPages).map((page, index) => {
-                  if (page === '...') {
-                    return (
-                      <PaginationItem key={`ellipsis-${index}`}>
-                        <span className="px-2">...</span>
-                      </PaginationItem>
-                    )
-                  }
-                  
-                  return (
-                    <PaginationItem key={page}>
+                {generatePaginationItems(currentPage, totalPages).map((page, index) => (
+                  <PaginationItem key={index}>
+                    {page === '...' ? (
+                      <span className="px-4 py-2">...</span>
+                    ) : (
                       <PaginationLink
-                        onClick={() => setCurrentPage(page)}
                         isActive={currentPage === page}
+                        onClick={() => setCurrentPage(page as number)}
                         className="cursor-pointer"
                       >
                         {page}
                       </PaginationLink>
-                    </PaginationItem>
-                  )
-                })}
+                    )}
+                  </PaginationItem>
+                ))}
                 
                 <PaginationItem>
                   <PaginationNext 
