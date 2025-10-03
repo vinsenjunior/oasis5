@@ -1,34 +1,23 @@
+// app/dashboard/rentals/manage/page.tsx
 "use client"
 
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Badge } from "@/components/ui/badge"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger, DialogOverlay } from "@/components/ui/dialog"
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog"
 import { Textarea } from "@/components/ui/textarea"
-import { Edit, Trash2, Eye, Search, Calendar, MapPin, Users, ChevronsUpDown } from "lucide-react"
+import { Label } from "@/components/ui/label"
+import { Input } from "@/components/ui/input"
+import { Edit, Trash2, Eye, Calendar } from "lucide-react"
 import { format } from "date-fns"
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination"
-import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-  CommandList,
-} from "@/components/ui/command"
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover"
+import RentalFilters from "@/components/RentalFilters"
+import { useRentalFilter } from "@/hooks/useRentalFilter"
 
 interface Rental {
   rentid: number
@@ -57,36 +46,13 @@ interface Rental {
   }
 }
 
-interface Client {
-  clientID: number
-  txtClient: string
-  txtCompany: string
-}
-
 export default function ManageRentalsPage() {
   const [userRole, setUserRole] = useState<string | null>(null)
   const router = useRouter()
   
   const [rentals, setRentals] = useState<Rental[]>([])
-  const [filteredRentals, setFilteredRentals] = useState<Rental[]>([])
-  const [clients, setClients] = useState<Client[]>([])
-  const [stations, setStations] = useState<string[]>([])
-  const [mediaGroups, setMediaGroups] = useState<string[]>([])
-  const [mediaSubGroups, setMediaSubGroups] = useState<string[]>([])
+  const { filters, filteredRentals, updateFilters, clearFilters } = useRentalFilter(rentals)
   
-  const [filters, setFilters] = useState({
-    clientID: "",
-    station: "",
-    status: "all", // all, active, expired
-    mediaGroup: "",      
-    mediaSubGroup: "",
-    assetCode: "",
-    startDate: "", 
-    endDate: ""     
-  })
-
-  const [clientSearch, setClientSearch] = useState("")
-
   const [currentPage, setCurrentPage] = useState(1)
   const [itemsPerPage] = useState(20)
   
@@ -133,10 +99,6 @@ export default function ManageRentalsPage() {
     }
   }, [router])
 
-  useEffect(() => {
-    applyFilters()
-  }, [filters, rentals])
-
   const fetchData = async () => {
     setLoading(true)
     try {
@@ -148,163 +110,12 @@ export default function ManageRentalsPage() {
       const rentalsData = await rentalsResponse.json()
       setRentals(rentalsData)
       
-      // Extract unique stations, clients, media groups, and media sub groups
-      const uniqueStations = [...new Set(rentalsData.map((rental: Rental) => rental.asset.txtStation))]
-      const uniqueMediaGroups = [...new Set(rentalsData.map((rental: Rental) => rental.asset.txtMediaGroup))]
-      const uniqueMediaSubGroups = [...new Set(rentalsData.map((rental: Rental) => rental.asset.txtMediaSubGroup))]
-      
-      const uniqueClients = rentalsData.reduce((acc: Client[], rental: Rental) => {
-        if (!acc.find(c => c.clientID === rental.clientID)) {
-          acc.push({
-            clientID: rental.clientID,
-            txtClient: rental.client.txtClient,
-            txtCompany: rental.client.txtCompany || ""
-          })
-        }
-        return acc
-      }, [])
-      
-      setStations(uniqueStations)
-      setMediaGroups(uniqueMediaGroups)
-      setMediaSubGroups(uniqueMediaSubGroups)
-      setClients(uniqueClients)
-      
     } catch (err) {
       setError("Gagal memuat data")
       console.error("Fetch error:", err)
     } finally {
       setLoading(false)
     }
-  }
-
-  const applyFilters = () => {
-    let filtered = rentals
-
-    // Filter client
-    if (filters.clientID) {
-      filtered = filtered.filter(rental => rental.clientID.toString() === filters.clientID)
-    }
-
-    // Filter station
-    if (filters.station) {
-      filtered = filtered.filter(rental => rental.asset.txtStation === filters.station)
-    }
-    
-    // Filter media group
-    if (filters.mediaGroup) {
-      filtered = filtered.filter(rental => rental.asset.txtMediaGroup === filters.mediaGroup)
-    }
-    
-    // Filter media sub group
-    if (filters.mediaSubGroup) {
-      filtered = filtered.filter(rental => rental.asset.txtMediaSubGroup === filters.mediaSubGroup)
-    }
-    
-    // Filter kode aset
-    if (filters.assetCode) {
-      filtered = filtered.filter((rental) =>
-        rental.asset.txtCode
-          .toLowerCase()
-          .includes(filters.assetCode.toLowerCase())
-      )
-    }
-
-    // Filter status
-    if (filters.status !== "all") {
-      const today = new Date()
-      if (filters.status === "active") {
-        filtered = filtered.filter(rental => {
-          if (!rental.datestart || !rental.dateend) return false
-          const start = new Date(rental.datestart)
-          const end = new Date(rental.dateend)
-          return end >= today && start <= today
-        })
-      } else if (filters.status === "expired") {
-        filtered = filtered.filter(rental => {
-          if (!rental.dateend) return false
-          const end = new Date(rental.dateend)
-          return end < today
-        })
-      } else if (filters.status === "booked") {
-        filtered = filtered.filter(rental => {
-          if (!rental.datestart) return false
-          const start = new Date(rental.datestart)
-          return start > today
-        })
-      }
-    }
-
-    // Filter periode tanggal
-    if (filters.startDate && filters.endDate) {
-      const startDate = new Date(filters.startDate)
-      const endDate = new Date(filters.endDate)
-      
-      // Set jam ke 00:00:00 untuk startDate dan 23:59:59 untuk endDate
-      startDate.setHours(0, 0, 0, 0)
-      endDate.setHours(23, 59, 59, 999)
-      
-      filtered = filtered.filter(rental => {
-        // Lewati jika tanggal rental kosong
-        if (!rental.datestart || !rental.dateend) return false
-        
-        const rentalStart = new Date(rental.datestart)
-        const rentalEnd = new Date(rental.dateend)
-        
-        // Cek apakah periode rental tumpang tindih dengan periode filter
-        return rentalStart <= endDate && rentalEnd >= startDate
-      })
-    }
-
-    setFilteredRentals(filtered)
-    setCurrentPage(1)
-  }
-
-  const handleFilterChange = (key: string, value: string) => {
-    setFilters(prev => ({ ...prev, [key]: value }))
-  }
-  
-  const removeFilter = (filterType: string) => {
-    switch (filterType) {
-      case "clientID":
-        handleFilterChange("clientID", "")
-        setClientSearch("")
-        break
-      case "station":
-        handleFilterChange("station", "")
-        break
-      case "mediaGroup":
-        handleFilterChange("mediaGroup", "")
-        break
-      case "mediaSubGroup":
-        handleFilterChange("mediaSubGroup", "")
-        break
-      case "assetCode":
-        handleFilterChange("assetCode", "")
-        break
-      case "status":
-        handleFilterChange("status", "all")
-        break
-      case "dateRange":
-        handleFilterChange("startDate", "")
-        handleFilterChange("endDate", "")
-        break
-      default:
-        break
-    }
-  }
-
-  const clearFilters = () => {
-    setFilters({
-      clientID: "",
-      station: "",
-      mediaGroup: "",
-      mediaSubGroup: "",
-      status: "all",
-      assetCode: "",
-      startDate: "",
-      endDate: ""
-    })  
-    setClientSearch("");
   }
 
   const totalPages = Math.ceil(filteredRentals.length / itemsPerPage)
@@ -475,334 +286,22 @@ export default function ManageRentalsPage() {
           </Alert>
         )}
 
-        {/* Filter Section */}
-        <Card className="mb-6">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Search className="w-5 h-5" />
-              Filter Data Sewa
-            </CardTitle>
-            <CardDescription>Filter data sewa berdasarkan kriteria tertentu</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="flex flex-wrap gap-4 items-end">
-              {/* Filter Client */}
-              <div className="min-w-[200px] flex-1">
-                <Label className="text-sm">Client</Label>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      role="combobox"
-                      aria-expanded="false"
-                      className="w-full justify-between mt-1"
-                    >
-                      {filters.clientID
-                        ? clients.find(c => c.clientID.toString() === filters.clientID)?.txtClient
-                        : (clientSearch || "Pilih client...")}
-                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-full max-w-md p-0 max-h-[60vh] overflow-y-auto">
-                    <Command>
-                      <CommandInput
-                        value={clientSearch}
-                        onValueChange={(value) => {
-                          const v = value.trim()
-                          setClientSearch(value)
-                          if (v === "") {
-                            handleFilterChange("clientID", "")
-                            return
-                          }
-                          const exact = clients.find(
-                            (c) =>
-                              c.txtClient.toLowerCase() === v.toLowerCase() ||
-                              c.txtCompany.toLowerCase() === v.toLowerCase()
-                          )
-                          if (exact) {
-                            handleFilterChange("clientID", exact.clientID.toString())
-                          } else {
-                            handleFilterChange("clientID", "")
-                          }
-                        }}
-                        placeholder="Ketik nama client..."
-                      />
-                      <CommandList>
-                        {(() => {
-                          const q = clientSearch.trim().toLowerCase()
-                          const filtered = q
-                            ? clients.filter(
-                                (c) =>
-                                  c.txtClient.toLowerCase().includes(q) ||
-                                  c.txtCompany.toLowerCase().includes(q)
-                              )
-                            : clients
+        {/* Filter Component */}
+        <RentalFilters 
+          rentals={rentals} 
+          onFilterChange={updateFilters}
+          initialFilters={filters}
+        />
 
-                          if (filtered.length === 0) {
-                            return <CommandEmpty>Tidak ada client ditemukan</CommandEmpty>
-                          }
-
-                          return (
-                            <CommandGroup>
-                              {filtered.map((client) => (
-                                <CommandItem
-                                  key={client.clientID}
-                                  value={client.txtClient}
-                                  onSelect={() => {
-                                    handleFilterChange("clientID", client.clientID.toString())
-                                    setClientSearch(client.txtClient)
-                                  }}
-                                >
-                                  <div className="flex flex-col">
-                                    <span>{client.txtClient}</span>
-                                    {client.txtCompany && (
-                                      <span className="text-sm text-muted-foreground">
-                                        {client.txtCompany}
-                                      </span>
-                                    )}
-                                  </div>
-                                </CommandItem>
-                              ))}
-                            </CommandGroup>
-                          )
-                        })()}
-                      </CommandList>
-                    </Command>
-                  </PopoverContent>
-                </Popover>
-              </div>
-
-              {/* Filter Station */}
-              <div className="min-w-[150px] flex-1">
-                <Label className="text-sm">Stasiun</Label>
-                <Select value={filters.station} onValueChange={(value) => handleFilterChange("station", value)}>
-                  <SelectTrigger className="mt-1">
-                    <SelectValue placeholder="Pilih stasiun" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {stations.map((station) => (
-                      <SelectItem key={station} value={station}>
-                        {station}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {/* Filter Media Group */}
-              <div className="min-w-[150px] flex-1">
-                <Label className="text-sm">Media Group</Label>
-                <Select value={filters.mediaGroup} onValueChange={(value) => handleFilterChange("mediaGroup", value)}>
-                  <SelectTrigger className="mt-1">
-                    <SelectValue placeholder="Pilih media group" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {mediaGroups.map((group) => (
-                      <SelectItem key={group} value={group}>
-                        {group}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {/* Filter Media Sub Group */}
-              <div className="min-w-[150px] flex-1">
-                <Label className="text-sm">Media Sub Group</Label>
-                <Select value={filters.mediaSubGroup} onValueChange={(value) => handleFilterChange("mediaSubGroup", value)}>
-                  <SelectTrigger className="mt-1">
-                    <SelectValue placeholder="Pilih media sub group" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {mediaSubGroups.map((subGroup) => (
-                      <SelectItem key={subGroup} value={subGroup}>
-                        {subGroup}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {/* Filter Kode Aset */}
-              <div className="w-24 flex-none">
-                <Label className="text-sm">Kode Aset</Label>
-                <Input
-                  placeholder="Kode aset..."
-                  value={filters.assetCode}
-                  onChange={(e) => handleFilterChange("assetCode", e.target.value)}
-                  className="mt-1"
-                />
-              </div>
-
-              {/* Filter Status */}
-              <div className="min-w-[150px] flex-1">
-                <Label className="text-sm">Status</Label>
-                <Select value={filters.status} onValueChange={(value) => handleFilterChange("status", value)}>
-                  <SelectTrigger className="mt-1">
-                    <SelectValue placeholder="Pilih status" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Semua</SelectItem>
-                    <SelectItem value="active">Aktif</SelectItem>
-                    <SelectItem value="booked">Booked</SelectItem>
-                    <SelectItem value="expired">Selesai</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-             {/* Filter Tanggal */}
-              <div className="min-w-[250px] flex-none date-picker-container">
-                <Label className="text-sm">Periode Tanggal</Label>
-                <div className="flex gap-1 mt-1">
-                  <Input
-                    type="date"
-                    value={filters.startDate}
-                    onChange={(e) => handleFilterChange("startDate", e.target.value)}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      (e.target as HTMLInputElement).showPicker?.();
-                    }}
-                    className="w-full"
-                    data-testid="start-date"
-                  />
-                  <span className="self-center text-gray-500">-</span>
-                  <Input
-                    type="date"
-                    value={filters.endDate}
-                    onChange={(e) => {
-                      const selectedDate = e.target.value
-                      if (filters.startDate && selectedDate < filters.startDate) {
-                        setError("Tanggal akhir tidak boleh sebelum tanggal mulai")
-                        return
-                      }
-                      handleFilterChange("endDate", selectedDate)
-                    }}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      (e.target as HTMLInputElement).showPicker?.();
-                    }}
-                    min={filters.startDate || undefined}
-                    className="w-full"
-                    data-testid="end-date"
-                  />
-                </div>
-              </div>
-
-              {/* Tombol Clear */}
-              <div>
-                <Button variant="default" onClick={clearFilters} className="mt-6">
-                  Clear
-                </Button>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Indikator Filter Aktif */}
-        <div className="mb-4 flex flex-wrap gap-2 items-center">
-          {filters.clientID && (
-            <Badge variant="secondary" className="flex items-center gap-1">
-              <Users className="w-3 h-3" />
-              Client: {clients.find(c => c.clientID.toString() === filters.clientID)?.txtClient}
-              <button 
-                onClick={() => {
-                  handleFilterChange("clientID", "")
-                  setClientSearch("")
-                }}
-                className="ml-1 hover:text-red-500"
-              >
-                ×
-              </button>
+        <div className="flex items-center gap-2 mb-4">
+          <p className="text-sm text-gray-600">
+            Menampilkan {currentAssets.length} dari {filteredRentals.length} data sewa
+          </p>
+          {totalPages > 1 && (
+            <Badge variant="outline">
+              Halaman {currentPage} dari {totalPages}
             </Badge>
           )}
-          
-          {filters.station && (
-            <Badge variant="secondary" className="flex items-center gap-1">
-              <MapPin className="w-3 h-3" />
-              Stasiun: {filters.station}
-              <button 
-                onClick={() => handleFilterChange("station", "")}
-                className="ml-1 hover:text-red-500"
-              >
-                ×
-              </button>
-            </Badge>
-          )}
-
-          {filters.mediaGroup && (
-            <Badge variant="secondary" className="flex items-center gap-1">
-              Media Group: {filters.mediaGroup}
-              <button 
-                onClick={() => handleFilterChange("mediaGroup", "")}
-                className="ml-1 hover:text-red-500"
-              >
-                ×
-              </button>
-            </Badge>
-          )}
-
-          {filters.mediaSubGroup && (
-            <Badge variant="secondary" className="flex items-center gap-1">
-              Media Sub Group: {filters.mediaSubGroup}
-              <button 
-                onClick={() => handleFilterChange("mediaSubGroup", "")}
-                className="ml-1 hover:text-red-500"
-              >
-                ×
-              </button>
-            </Badge>
-          )}
-
-          {filters.assetCode && (
-            <Badge variant="secondary" className="flex items-center gap-1">
-              Kode: {filters.assetCode}
-              <button 
-                onClick={() => handleFilterChange("assetCode", "")}
-                className="ml-1 hover:text-red-500"
-              >
-                ×
-              </button>
-            </Badge>
-          )}
-          
-          {filters.status !== "all" && (
-            <Badge variant="secondary" className="flex items-center gap-1">
-              Status: {filters.status === "active" ? "Aktif" : filters.status === "booked" ? "Booked" : "Selesai"}
-              <button 
-                onClick={() => handleFilterChange("status", "all")}
-                className="ml-1 hover:text-red-500"
-              >
-                ×
-              </button>
-            </Badge>
-          )}
-          
-          {filters.startDate && filters.endDate && (
-            <Badge variant="secondary" className="flex items-center gap-1">
-              <Calendar className="w-3 h-3" />
-              {format(new Date(filters.startDate), "dd/MM/yyyy")} - {format(new Date(filters.endDate), "dd/MM/yyyy")}
-              <button 
-                onClick={() => {
-                  handleFilterChange("startDate", "")
-                  handleFilterChange("endDate", "")
-                }}
-                className="ml-1 hover:text-red-500"
-              >
-                ×
-              </button>
-            </Badge>
-          )}
-          
-          <div className="flex items-center gap-2 ml-auto">
-            <p className="text-sm text-gray-600">
-              Menampilkan {currentAssets.length} dari {filteredRentals.length} data sewa
-            </p>
-            {totalPages > 1 && (
-              <Badge variant="outline">
-                Halaman {currentPage} dari {totalPages}
-              </Badge>
-            )}
-          </div>
         </div>
 
         {/* Rentals Table */}
