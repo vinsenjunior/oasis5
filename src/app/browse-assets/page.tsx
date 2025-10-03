@@ -12,9 +12,9 @@ import { format } from "date-fns"
 import Image from 'next/image'
 
 // 导入提供的组件和钩子
-import Pagination from "@/components/Pagination"
-import RentalFilters from "@/components/RentalFilters"
-import { useRentalFilter } from "@/hooks/useRentalFilter"
+import Pagination from "@/components/pagination"
+import RentalFilters from "@/components/rentalfilters"
+// import { useRentalFilter } from "@/hooks/userentalfilter"
 
 interface Asset {
   assetID: string
