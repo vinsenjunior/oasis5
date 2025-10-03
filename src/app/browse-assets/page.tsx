@@ -3,18 +3,18 @@
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Badge } from "@/components/ui/badge"
-import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Search, Filter, MapPin, Ruler, Zap, Calendar, User, ExternalLink, Eye } from "lucide-react"
+import { MapPin, Calendar, User, ExternalLink, Eye } from "lucide-react"
 import { format } from "date-fns"
-import { convertDriveLink } from "@/utils/gdrive";
 import Image from 'next/image'
+
+// 导入提供的组件和钩子
+import Pagination from "@/components/Pagination"
+import RentalFilters from "@/components/RentalFilters"
+import { useRentalFilter } from "@/hooks/useRentalFilter"
 
 interface Asset {
   assetID: string
@@ -52,35 +52,57 @@ interface Rental {
   }
 }
 
+// 将资产转换为租赁格式以适配过滤组件
+const assetToRentalFormat = (asset: Asset): any => ({
+  rentid: 0,
+  assetID: asset.assetID,
+  clientID: 0,
+  datestart: "",
+  dateend: "",
+  txtsales: "",
+  lnkreport: "",
+  txtnotes: "",
+  asset: {
+    assetID: asset.assetID,
+    txtStation: asset.txtStation,
+    txtCode: asset.txtCode,
+    kodetitik: "",
+    txtMediaGroup: asset.txtMediaGroup,
+    txtMediaSubGroup: asset.txtMediaSubGroup
+  },
+  client: {
+    clientID: 0,
+    txtClient: "",
+    txtCompany: "",
+    txtPhone: "",
+    txtAddress: ""
+  }
+})
+
 export default function BrowseAssetsPage() {
   const [assets, setAssets] = useState<Asset[]>([])
-  const [filteredAssets, setFilteredAssets] = useState<Asset[]>([])
-  const [stations, setStations] = useState<string[]>([])
-  const [mediaGroups, setMediaGroups] = useState<string[]>([])
-  const [mediaSubGroups, setMediaSubGroups] = useState<string[]>([])
-  const [filters, setFilters] = useState({
-    station: "",
-    mediaGroup: "",
-    mediaSubGroup: "",
-    assetCode: ""
-  })
-  const [currentPage, setCurrentPage] = useState(1)
   const [isLoading, setIsLoading] = useState(true)
   const [selectedAsset, setSelectedAsset] = useState<Asset | null>(null)
   const [rentalHistory, setRentalHistory] = useState<Rental[]>([])
   const [historyLoading, setHistoryLoading] = useState(false)
   const [historyDialogOpen, setHistoryDialogOpen] = useState(false)
   const router = useRouter()
-  const itemsPerPage = 20
+  
+  // 状态用于分页
+  const [currentPage, setCurrentPage] = useState(1)
+  const [itemsPerPage, setItemsPerPage] = useState(20)
+  
+  // 过滤状态
+  const [filters, setFilters] = useState({
+    station: "",
+    mediaGroup: "",
+    mediaSubGroup: "",
+    assetCode: ""
+  })
 
   useEffect(() => {
     fetchAssets()
-    fetchFilters()
   }, [])
-
-  useEffect(() => {
-    filterAssets()
-  }, [assets, filters])
 
   const fetchAssets = async () => {
     try {
@@ -93,33 +115,6 @@ export default function BrowseAssetsPage() {
       console.error("Error fetching assets:", err)
     } finally {
       setIsLoading(false)
-    }
-  }
-
-  const fetchFilters = async () => {
-    try {
-      const [stationsRes, groupsRes, subGroupsRes] = await Promise.all([
-        fetch("/api/assets/stations"),
-        fetch("/api/assets/media-groups"),
-        fetch("/api/assets/media-sub-groups")
-      ])
-
-      if (stationsRes.ok) {
-        const stationsData = await stationsRes.json()
-        setStations(stationsData)
-      }
-
-      if (groupsRes.ok) {
-        const groupsData = await groupsRes.json()
-        setMediaGroups(groupsData)
-      }
-
-      if (subGroupsRes.ok) {
-        const subGroupsData = await subGroupsRes.json()
-        setMediaSubGroups(subGroupsData)
-      }
-    } catch (err) {
-      console.error("Error fetching filters:", err)
     }
   }
 
@@ -144,7 +139,8 @@ export default function BrowseAssetsPage() {
     await fetchRentalHistory(asset.assetID)
   }
 
-  const filterAssets = () => {
+  // 应用过滤条件到资产数据
+  const getFilteredAssets = () => {
     let filtered = assets
 
     if (filters.station) {
@@ -165,55 +161,35 @@ export default function BrowseAssetsPage() {
       )
     }
 
-    setFilteredAssets(filtered)
-    setCurrentPage(1)
+    return filtered
   }
 
-  const handleFilterChange = (key: string, value: string) => {
-    setFilters(prev => ({ ...prev, [key]: value }))
+  // 处理过滤变化
+  const handleFilterChange = (newFilters: any) => {
+    setFilters({
+      station: newFilters.station || "",
+      mediaGroup: newFilters.mediaGroup || "",
+      mediaSubGroup: newFilters.mediaSubGroup || "",
+      assetCode: newFilters.assetCode || ""
+    })
+    setCurrentPage(1) // 重置到第一页
   }
 
-  const clearFilters = () => {
+  // 清除过滤
+  const handleClearFilters = () => {
     setFilters({
       station: "",
       mediaGroup: "",
       mediaSubGroup: "",
       assetCode: ""
     })
-  }
-  
-  const [convertedUrl, setConvertedUrl] = useState("");
-
-  const convertLink = () => {
-    try {
-      const url = new URL(thumbnailUrl);
-      const id = url.searchParams.get("id");
-
-      if (id) {
-        const fileUrl = `https://drive.google.com/file/d/${id}/view?usp=sharing`;
-        setConvertedUrl(fileUrl);
-      } else {
-        setConvertedUrl("Invalid thumbnail URL. No ID found.");
-      }
-    } catch (error) {
-      setConvertedUrl("Invalid URL format.");
-    }
-  };
-  
-  const getRentalStatus = (startDate: string, endDate: string) => {
-    const today = new Date()
-    const start = new Date(startDate)
-    const end = new Date(endDate)
-    
-    if (today < start) {
-      return { status: "upcoming", label: "Akan Datang", variant: "secondary" as const }
-    } else if (today >= start && today <= end) {
-      return { status: "active", label: "Aktif", variant: "default" as const }
-    } else {
-      return { status: "completed", label: "Selesai", variant: "destructive" as const }
-    }
+    setCurrentPage(1) // 重置到第一页
   }
 
+  // 将资产转换为租赁格式以适配过滤组件
+  const rentalsForFilter = assets.map(assetToRentalFormat)
+
+  const filteredAssets = getFilteredAssets()
   const totalPages = Math.ceil(filteredAssets.length / itemsPerPage)
   const startIndex = (currentPage - 1) * itemsPerPage
   const currentAssets = filteredAssets.slice(startIndex, startIndex + itemsPerPage)
@@ -233,101 +209,27 @@ export default function BrowseAssetsPage() {
 
   return (
     <div className="container mx-auto p-6">
-         <div className="flex justify-between items-center mb-8">
-          <div>
-            <h1 className="text-3xl font-bold">Browse Media Assets</h1>
-            <p className="text-gray-600">Jelajahi semua aset media iklan yang tersedia</p>
-          </div>
-          <Button variant="outline" onClick={() => router.push("/dashboard")}>
-            Kembali ke Dashboard
-          </Button>
+      <div className="flex justify-between items-center mb-8">
+        <div>
+          <h1 className="text-3xl font-bold">Browse Media Assets</h1>
+          <p className="text-gray-600">Jelajahi semua aset media iklan yang tersedia</p>
         </div>
+        <Button variant="outline" onClick={() => router.push("/dashboard")}>
+          Kembali ke Dashboard
+        </Button>
+      </div>
 
-      {/* Filter Section */}
-      <Card className="mb-6">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Filter className="h-5 w-5" />
-            Filter Data Aset
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Station</label>
-              <Select value={filters.station} onValueChange={(value) => handleFilterChange("station", value)}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Pilih stasiun" />
-                </SelectTrigger>
-                <SelectContent>
-                  {/* <SelectItem value="">Semua Stasiun</SelectItem> */}
-                  {stations.map((station) => (
-                    <SelectItem key={station} value={station}>
-                      {station}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Media Group</label>
-              <Select value={filters.mediaGroup} onValueChange={(value) => handleFilterChange("mediaGroup", value)}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Pilih media group" />
-                </SelectTrigger>
-                <SelectContent>
-                  {/* <SelectItem value="">Semua Group</SelectItem> */}
-                  {mediaGroups.map((group) => (
-                    <SelectItem key={group} value={group}>
-                      {group}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Media Sub Group</label>
-              <Select value={filters.mediaSubGroup} onValueChange={(value) => handleFilterChange("mediaSubGroup", value)}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Pilih sub group" />
-                </SelectTrigger>
-                <SelectContent>
-                  {/* <SelectItem value="">Semua Sub Group</SelectItem> */}
-                  {mediaSubGroups.map((subGroup) => (
-                    <SelectItem key={subGroup} value={subGroup}>
-                      {subGroup}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Kode Aset</label>
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-                <Input
-                  placeholder="Cari kode aset..."
-                  value={filters.assetCode}
-                  onChange={(e) => handleFilterChange("assetCode", e.target.value)}
-                  className="pl-10"
-                />
-              </div>
-            </div>
-          </div>
-
-          <div className="mt-4 flex justify-between items-center">
-            <p className="text-sm text-gray-600">
-              Menampilkan {filteredAssets.length} dari {assets.length} aset
-            </p>
-            <Button variant="outline" size="sm" onClick={clearFilters}>
-              Clear Filters
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
+      {/* 使用提供的过滤组件 */}
+      <RentalFilters 
+        rentals={rentalsForFilter}
+        onFilterChange={handleFilterChange}
+        initialFilters={{
+          station: filters.station,
+          mediaGroup: filters.mediaGroup,
+          mediaSubGroup: filters.mediaSubGroup,
+          assetCode: filters.assetCode
+        }}
+      />
 
       {/* Assets Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -346,7 +248,6 @@ export default function BrowseAssetsPage() {
                 </div>
               )}
               <div className="absolute top-2 right-2 flex gap-2">
-                
                 <Button
                   size="sm"
                   variant="outline"
@@ -362,7 +263,6 @@ export default function BrowseAssetsPage() {
               <div className="space-y-1">
                 <div>
                   <h3 className="font-semibold text-lg">{asset.txtCode}</h3>
-                  {/* <p className="text-sm text-gray-600 line-clamp-2">{asset.txtDesc || "No description available"}</p> */}
                 </div>
 
                 <div className="flex items-center gap-2 text-sm text-gray-600">
@@ -374,25 +274,6 @@ export default function BrowseAssetsPage() {
                   <Badge variant="outline">{asset.txtMediaGroup}</Badge>
                   <Badge variant="outline">{asset.txtMediaSubGroup}</Badge>
                 </div>
-
-                {/* <div className="grid grid-cols-2 gap-2 text-sm">
-                  {asset.numsizeSQM && (
-                    <div className="flex items-center gap-1">
-                      <Ruler className="h-3 w-3" />
-                      <span>{asset.numsizeSQM} m²</span>
-                    </div>
-                  )}
-                  {asset.numpoweract && (
-                    <div className="flex items-center gap-1">
-                      <Zap className="h-3 w-3" />
-                      <span>{asset.numpoweract}W</span>
-                    </div>
-                  )}
-                </div> 
-
-                {asset.txtnotes && (
-                  <p className="text-xs text-gray-500 line-clamp-2">{asset.txtnotes}</p>
-                )}*/}
               </div>
             </CardContent>
           </Card>
@@ -405,55 +286,21 @@ export default function BrowseAssetsPage() {
         </div>
       )}
 
-      {/* Pagination */}
+      {/* 使用提供的分页组件 */}
       {totalPages > 1 && (
         <div className="mt-8">
-          <Pagination>
-            <PaginationContent>
-              <PaginationItem>
-                <PaginationPrevious 
-                  onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-                  className={currentPage === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
-                />
-              </PaginationItem>
-              
-              {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                let pageNum
-                if (totalPages <= 5) {
-                  pageNum = i + 1
-                } else if (currentPage <= 3) {
-                  pageNum = i + 1
-                } else if (currentPage >= totalPages - 2) {
-                  pageNum = totalPages - 4 + i
-                } else {
-                  pageNum = currentPage - 2 + i
-                }
-
-                return (
-                  <PaginationItem key={pageNum}>
-                    <PaginationLink
-                      onClick={() => setCurrentPage(pageNum)}
-                      isActive={currentPage === pageNum}
-                      className="cursor-pointer"
-                    >
-                      {pageNum}
-                    </PaginationLink>
-                  </PaginationItem>
-                )
-              })}
-              
-              <PaginationItem>
-                <PaginationNext 
-                  onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
-                  className={currentPage === totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
-                />
-              </PaginationItem>
-            </PaginationContent>
-          </Pagination>
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            totalItems={filteredAssets.length}
+            itemsPerPage={itemsPerPage}
+            onPageChange={setCurrentPage}
+            onItemsPerPageChange={setItemsPerPage}
+            showItemsPerPageSelector={true}
+            itemsPerPageOptions={[10, 20, 50, 100]}
+          />
         </div>
       )}
-
-        
 
       {/* Rental History Dialog */}
       <Dialog open={historyDialogOpen} onOpenChange={setHistoryDialogOpen}>
@@ -475,7 +322,6 @@ export default function BrowseAssetsPage() {
                 <CardContent className="p-4">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                      {/* <h4 className="font-semibold mb-2">Detail Aset</h4> */}
                       <table className="min-w-full text-left text-sm whitespace-nowrap">
                         <tbody>
                           <tr className="">
@@ -518,39 +364,21 @@ export default function BrowseAssetsPage() {
                             <th scope="row" className="px-6 py-3 border-x dark:border-neutral-600">
                               Visual SQM :
                             </th>
-                            <td className="px-6 py-3 border-x dark:border-neutral-600">{selectedAsset.numvisualSQM} m²</td>                        
+                            <td className="px-6 py-3 border-x dark:border-neutral-600">{selectedAsset.numsizeSQM} m²</td>                        
                           </tr>
-
                         </tbody>
-
                       </table>
-                      {/* <div className="grid grid-cols-2 text-sm">
-                        <div className="font-medium">Kode:</div> <div className="col-start-2">{selectedAsset.txtCode}</div>
-                        <div className="font-medium">Stasiun:</div> <div className="col-start-2"></div>{selectedAsset.txtStation}</div>
-                        <div className="font-medium">Media Group:</div><div className="col-start-2"> {selectedAsset.txtMediaGroup}</div>
-                        <div className="font-medium">Media Sub Group:</div> <div className="col-start-2">{selectedAsset.txtMediaSubGroup}</div>
-                        <div className="font-medium">Visual Width</div><div className="col-start-2"> {selectedAsset.numvisualW} m </div>
-                        <div className="font-medium">Visual Height</div><div className="col-start-2"> {selectedAsset.numvisualH} m </div>
-                        <div className="font-medium">Visual SQM</div><div className="col-start-2">{selectedAsset.numsizeSQM} m²</div> */}
                     </div>
                     <div>
-                      {/* <h4 className="font-semibold mb-2">Gambar Aset</h4> */}
                       <div className="w-full h-full">
-                        
-                          <img 
-                          // src={convertDriveLink(selectedAsset.lnkMockup)} alt={selectedAsset.txtDesc && selectedAsset.txtCode}
-                          src={selectedAsset.lnkMockup} alt={selectedAsset.txtDesc && selectedAsset.txtCode }
-                          className="h-full w-full"/>
-                        
+                        <img 
+                          src={selectedAsset.lnkMockup} 
+                          alt={selectedAsset.txtDesc && selectedAsset.txtCode }
+                          className="h-full w-full"
+                        />
                       </div>
                     </div>
                   </div>
-                  {/* {selectedAsset.txtDesc && (
-                    <div className="mt-4">
-                      <h4 className="font-semibold mb-1">Deskripsi</h4>
-                      <p className="text-sm text-gray-600">{selectedAsset.txtDesc}</p>
-                    </div>
-                  )} */}
                 </CardContent>
               </Card>
             )}
@@ -579,7 +407,17 @@ export default function BrowseAssetsPage() {
                     </TableHeader>
                     <TableBody>
                       {rentalHistory.map((rental) => {
-                        const status = getRentalStatus(rental.datestart, rental.dateend)
+                        const today = new Date()
+                        const start = new Date(rental.datestart)
+                        const end = new Date(rental.dateend)
+                        
+                        let status = { status: "completed", label: "Selesai", variant: "destructive" as const }
+                        if (today < start) {
+                          status = { status: "upcoming", label: "Akan Datang", variant: "secondary" as const }
+                        } else if (today >= start && today <= end) {
+                          status = { status: "active", label: "Aktif", variant: "default" as const }
+                        }
+                        
                         return (
                           <TableRow key={rental.rentid}>
                             <TableCell>

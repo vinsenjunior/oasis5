@@ -68,28 +68,7 @@ export default function Pagination({
         </div>
       )}
 
-      {/* Items Per Page Selector */}
-      {showItemsPerPageSelector && onItemsPerPageChange && (
-        <div className="flex items-center gap-2">
-          <span className="text-sm text-gray-600">Tampilkan per halaman:</span>
-          <Select
-            value={itemsPerPage.toString()}
-            onValueChange={(value) => onItemsPerPageChange(parseInt(value))}
-          >
-            <SelectTrigger className="w-16">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {itemsPerPageOptions.map((option) => (
-                <SelectItem key={option} value={option.toString()}>
-                  {option}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-      )}
-
+     
       {/* Pagination Controls */}
       <div className="flex items-center gap-1">
         <Button
@@ -153,6 +132,29 @@ export default function Pagination({
           <ChevronRight className="h-4 w-4 -ml-3" />
         </Button>
       </div>
+
+       {/* Items Per Page Selector */}
+      {showItemsPerPageSelector && onItemsPerPageChange && (
+        <div className="flex items-center gap-2">
+          <span className="text-sm text-gray-600">Tampilkan per halaman:</span>
+          <Select
+            value={itemsPerPage.toString()}
+            onValueChange={(value) => onItemsPerPageChange(parseInt(value))}
+          >
+            <SelectTrigger className="w-16">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {itemsPerPageOptions.map((option) => (
+                <SelectItem key={option} value={option.toString()}>
+                  {option}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      )}
+
     </div>
   )
 }

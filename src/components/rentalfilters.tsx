@@ -220,9 +220,7 @@ export default function RentalFilters({
             <Search className="w-5 h-5" />
             Filter Data Sewa
           </h2>
-          <Button variant="default" onClick={clearFilters}>
-            Clear
-          </Button>
+          
         </div>
         
         <div className="flex flex-wrap gap-4 items-end">
@@ -426,6 +424,9 @@ export default function RentalFilters({
               />
             </div>
           </div>
+          <div className="flex-1"><Button variant="default" onClick={clearFilters}>
+            Hapus Filter
+          </Button></div>
         </div>
       </div>
 
