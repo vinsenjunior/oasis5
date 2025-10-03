@@ -15,8 +15,8 @@ import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
 import { Edit, Trash2, Eye, Calendar } from "lucide-react"
 import { format } from "date-fns"
-import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination"
 import RentalFilters from "@/components/RentalFilters"
+import Pagination from "@/components/Pagination"
 import { useRentalFilter } from "@/hooks/useRentalFilter"
 
 interface Rental {
@@ -54,7 +54,7 @@ export default function ManageRentalsPage() {
   const { filters, filteredRentals, updateFilters, clearFilters } = useRentalFilter(rentals)
   
   const [currentPage, setCurrentPage] = useState(1)
-  const [itemsPerPage] = useState(20)
+  const [itemsPerPage, setItemsPerPage] = useState(20)
   
   const [selectedRental, setSelectedRental] = useState<Rental | null>(null)
   const [editingRental, setEditingRental] = useState<Rental | null>(null)
@@ -224,31 +224,15 @@ export default function ManageRentalsPage() {
     }
   };
 
-  const generatePaginationItems = (currentPage: number, totalPages: number) => {
-    if (totalPages <= 7) {
-      return Array.from({ length: totalPages }, (_, i) => i + 1)
-    }
-    
-    if (currentPage <= 4) {
-      return [1, 2, 3, 4, 5, 6, '...', totalPages]
-    }
-    
-    if (currentPage >= totalPages - 3) {
-      return [1, '...', totalPages - 5, totalPages - 4, totalPages - 3, totalPages - 2, totalPages - 1, totalPages]
-    }
-    
-    return [
-      1, 
-      '...', 
-      currentPage - 2, 
-      currentPage - 1, 
-      currentPage, 
-      currentPage + 1, 
-      currentPage + 2, 
-      '...', 
-      totalPages
-    ]
-  }
+  // Reset to page 1 when filters change
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [filteredRentals.length])
+
+  // Reset to page 1 when items per page changes
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [itemsPerPage])
 
   if (!userRole) {
     return (
@@ -292,17 +276,6 @@ export default function ManageRentalsPage() {
           onFilterChange={updateFilters}
           initialFilters={filters}
         />
-
-        <div className="flex items-center gap-2 mb-4">
-          <p className="text-sm text-gray-600">
-            Menampilkan {currentAssets.length} dari {filteredRentals.length} data sewa
-          </p>
-          {totalPages > 1 && (
-            <Badge variant="outline">
-              Halaman {currentPage} dari {totalPages}
-            </Badge>
-          )}
-        </div>
 
         {/* Rentals Table */}
         <Card>
@@ -382,7 +355,7 @@ export default function ManageRentalsPage() {
                                     <div>
                                       <Label className="text-sm font-medium">Aset</Label>
                                       <p>{rental.asset.txtCode}</p>
-                                      <p className="text-sm text-gray-500">{rental.asset.kodetitik}</p>
+                                      <p className="text-sm text-gray-500">{rental.asset.txtCode}</p>
                                     </div>
                                     <div>
                                       <Label className="text-sm font-medium">Stasiun</Label>
@@ -407,7 +380,7 @@ export default function ManageRentalsPage() {
                                       <div className="col-span-2">
                                         <Label className="text-sm font-medium">Link Report</Label>
                                         <a href={rental.lnkreport} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
-                                          {rental.lnkreport}
+                                          Report {rental.client.txtCompany}    
                                         </a>
                                       </div>
                                     )}
@@ -586,42 +559,19 @@ export default function ManageRentalsPage() {
           </CardContent>
         </Card>
 
-        {/* Pagination */}
-        {totalPages > 1 && (
-          <div className="mt-8">
-            <Pagination>
-              <PaginationContent>
-                <PaginationItem>
-                  <PaginationPrevious 
-                    onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-                    className={currentPage === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
-                  />
-                </PaginationItem>
-                
-                {generatePaginationItems(currentPage, totalPages).map((page, index) => (
-                  <PaginationItem key={index}>
-                    {page === '...' ? (
-                      <span className="px-4 py-2">...</span>
-                    ) : (
-                      <PaginationLink
-                        isActive={currentPage === page}
-                        onClick={() => setCurrentPage(page as number)}
-                        className="cursor-pointer"
-                      >
-                        {page}
-                      </PaginationLink>
-                    )}
-                  </PaginationItem>
-                ))}
-                
-                <PaginationItem>
-                  <PaginationNext 
-                    onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
-                    className={currentPage === totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
-                  />
-                </PaginationItem>
-              </PaginationContent>
-            </Pagination>
+        {/* Pagination Component */}
+        {totalPages > 0 && (
+          <div className="mt-6">
+            <Pagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              totalItems={filteredRentals.length}
+              itemsPerPage={itemsPerPage}
+              onPageChange={setCurrentPage}
+              onItemsPerPageChange={setItemsPerPage}
+              showItemsPerPageSelector={true}
+              showPageInfo={true}
+            />
           </div>
         )}
       </div>

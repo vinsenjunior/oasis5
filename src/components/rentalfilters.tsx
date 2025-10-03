@@ -72,7 +72,11 @@ interface FilterState {
   endDate: string     
 }
 
-export default function RentalFilters({ rentals, onFilterChange, initialFilters }: RentalFiltersProps) {
+export default function RentalFilters({ 
+  rentals, 
+  onFilterChange, 
+  initialFilters
+}: RentalFiltersProps) {
   const [filters, setFilters] = useState<FilterState>({
     clientID: "",
     station: "",
@@ -88,6 +92,7 @@ export default function RentalFilters({ rentals, onFilterChange, initialFilters 
   const [clientSearch, setClientSearch] = useState("")
   
   // Extract unique stations, clients, media groups, and media sub groups
+  const [allStations, setAllStations] = useState<string[]>([])
   const [stations, setStations] = useState<string[]>([])
   const [mediaGroups, setMediaGroups] = useState<string[]>([])
   const [mediaSubGroups, setMediaSubGroups] = useState<string[]>([])
@@ -111,6 +116,7 @@ export default function RentalFilters({ rentals, onFilterChange, initialFilters 
         return acc
       }, [])
       
+      setAllStations(uniqueStations)
       setStations(uniqueStations)
       setMediaGroups(uniqueMediaGroups)
       setMediaSubGroups(uniqueMediaSubGroups)
@@ -118,20 +124,26 @@ export default function RentalFilters({ rentals, onFilterChange, initialFilters 
     }
   }, [rentals])
 
-  // NEW LOGIC: Update media groups and sub groups when client changes
+  // NEW LOGIC: Update stations, media groups and sub groups when client changes
   useEffect(() => {
     if (filters.clientID) {
       // Filter rentals for the selected client
       const clientRentals = rentals.filter(rental => rental.clientID.toString() === filters.clientID)
       
-      // Extract unique media groups and sub groups for this client
+      // Extract unique stations, media groups and sub groups for this client
+      const clientStations = [...new Set(clientRentals.map(rental => rental.asset.txtStation))]
       const clientMediaGroups = [...new Set(clientRentals.map(rental => rental.asset.txtMediaGroup))]
       const clientMediaSubGroups = [...new Set(clientRentals.map(rental => rental.asset.txtMediaSubGroup))]
       
+      setStations(clientStations)
       setMediaGroups(clientMediaGroups)
       setMediaSubGroups(clientMediaSubGroups)
       
-      // Reset media group and sub group if they're no longer valid for this client
+      // Reset filters if they're no longer valid for this client
+      if (filters.station && !clientStations.includes(filters.station)) {
+        handleFilterChange("station", "")
+      }
+      
       if (filters.mediaGroup && !clientMediaGroups.includes(filters.mediaGroup)) {
         handleFilterChange("mediaGroup", "")
       }
@@ -140,14 +152,12 @@ export default function RentalFilters({ rentals, onFilterChange, initialFilters 
         handleFilterChange("mediaSubGroup", "")
       }
     } else {
-      // Reset to all media groups and sub groups when no client is selected
-      const allMediaGroups = [...new Set(rentals.map(rental => rental.asset.txtMediaGroup))]
-      const allMediaSubGroups = [...new Set(rentals.map(rental => rental.asset.txtMediaSubGroup))]
-      
-      setMediaGroups(allMediaGroups)
-      setMediaSubGroups(allMediaSubGroups)
+      // Reset to all stations, media groups and sub groups when no client is selected
+      setStations(allStations)
+      setMediaGroups([...new Set(rentals.map(rental => rental.asset.txtMediaGroup))])
+      setMediaSubGroups([...new Set(rentals.map(rental => rental.asset.txtMediaSubGroup))])
     }
-  }, [filters.clientID, rentals])
+  }, [filters.clientID, rentals, allStations])
 
   const handleFilterChange = (key: keyof FilterState, value: string) => {
     const newFilters = { ...filters, [key]: value }
@@ -420,7 +430,7 @@ export default function RentalFilters({ rentals, onFilterChange, initialFilters 
       </div>
 
       {/* Active Filters */}
-      <div className="flex flex-wrap gap-2 items-center">
+      <div className="flex flex-wrap gap-2">
         {filters.clientID && (
           <Badge variant="secondary" className="flex items-center gap-1">
             <Users className="w-3 h-3" />
