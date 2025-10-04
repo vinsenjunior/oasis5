@@ -229,6 +229,8 @@ export default function BrowseAssetsPage() {
           mediaSubGroup: filters.mediaSubGroup,
           assetCode: filters.assetCode
         }}
+        hideClientFilter={true}   // Hide client filter
+        hideDateFilter={true}     // Hide date filter
       />
 
       {/* Assets Grid */}

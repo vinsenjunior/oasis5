@@ -23,6 +23,15 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover"
 
+// hide several filters
+interface RentalFiltersProps {
+  rentals: Rental[]
+  onFilterChange: (filters: FilterState) => void
+  initialFilters?: Partial<FilterState>
+  hideClientFilter?: boolean    // New prop to hide client filter
+  hideDateFilter?: boolean      // New prop to hide date filter
+}
+
 interface Rental {
   rentid: number
   assetID: string
@@ -75,7 +84,9 @@ interface FilterState {
 export default function RentalFilters({ 
   rentals, 
   onFilterChange, 
-  initialFilters
+  initialFilters,
+  hideClientFilter = false,   // Default to false
+  hideDateFilter = false      // Default to false
 }: RentalFiltersProps) {
   const [filters, setFilters] = useState<FilterState>({
     clientID: "",
@@ -212,19 +223,22 @@ export default function RentalFilters({
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 mb-5">
       {/* Filter Section */}
       <div className="bg-white p-4 rounded-lg border">
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-lg font-semibold flex items-center gap-2">
             <Search className="w-5 h-5" />
-            Filter Data Sewa
+            Filter Data
           </h2>
           
         </div>
         
         <div className="flex flex-wrap gap-4 items-end">
           {/* Filter Client */}
+
+         {/* hide if property set to true */}
+         {!hideClientFilter && (
           <div className="min-w-[200px] flex-1">
             <Label className="text-sm">Client</Label>
             <Popover>
@@ -309,6 +323,7 @@ export default function RentalFilters({
               </PopoverContent>
             </Popover>
           </div>
+         )}
 
           {/* Filter Station */}
           <div className="min-w-[150px] flex-1">
@@ -389,41 +404,45 @@ export default function RentalFilters({
           </div>
 
           {/* Filter Tanggal */}
-          <div className="min-w-[250px] flex-none date-picker-container">
-            <Label className="text-sm">Periode Tanggal</Label>
-            <div className="flex gap-1 mt-1">
-              <Input
-                type="date"
-                value={filters.startDate}
-                onChange={(e) => handleFilterChange("startDate", e.target.value)}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  (e.target as HTMLInputElement).showPicker?.();
-                }}
-                className="w-full"
-                data-testid="start-date"
-              />
-              <span className="self-center text-gray-500">-</span>
-              <Input
-                type="date"
-                value={filters.endDate}
-                onChange={(e) => {
-                  const selectedDate = e.target.value
-                  if (filters.startDate && selectedDate < filters.startDate) {
-                    return
-                  }
-                  handleFilterChange("endDate", selectedDate)
-                }}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  (e.target as HTMLInputElement).showPicker?.();
-                }}
-                min={filters.startDate || undefined}
-                className="w-full"
-                data-testid="end-date"
-              />
+          {/* Hide if property is true */}
+          {!hideDateFilter && (
+            <div className="min-w-[250px] flex-none date-picker-container">
+              <Label className="text-sm">Periode Tanggal</Label>
+              <div className="flex gap-1 mt-1">
+                <Input
+                  type="date"
+                  value={filters.startDate}
+                  onChange={(e) => handleFilterChange("startDate", e.target.value)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    (e.target as HTMLInputElement).showPicker?.();
+                  }}
+                  className="w-full"
+                  data-testid="start-date"
+                />
+                <span className="self-center text-gray-500">-</span>
+                <Input
+                  type="date"
+                  value={filters.endDate}
+                  onChange={(e) => {
+                    const selectedDate = e.target.value
+                    if (filters.startDate && selectedDate < filters.startDate) {
+                      return
+                    }
+                    handleFilterChange("endDate", selectedDate)
+                  }}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    (e.target as HTMLInputElement).showPicker?.();
+                  }}
+                  min={filters.startDate || undefined}
+                  className="w-full"
+                  data-testid="end-date"
+                />
+              </div>
             </div>
-          </div>
+          )}
+
           <div className="flex-1"><Button variant="default" onClick={clearFilters}>
             Hapus Filter
           </Button></div>
@@ -431,7 +450,10 @@ export default function RentalFilters({
       </div>
 
       {/* Active Filters */}
-      <div className="flex flex-wrap gap-2">
+      <div className="flex flex-wrap justify-center items-center gap-2 align-middle">
+
+        <span className="text-xs">Filter aktif : </span>
+
         {filters.clientID && (
           <Badge variant="secondary" className="flex items-center gap-1">
             <Users className="w-3 h-3" />
