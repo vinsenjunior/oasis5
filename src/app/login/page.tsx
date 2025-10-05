@@ -59,12 +59,12 @@ export default function LoginPage() {
   return (
     
     <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-b from-blue-600 to-blue-800 p-4">
-      <div className="space-y-4">
-        <Image src="/o_logo.svg" alt="Otego Logo" width={150} height={150} className="pb-12" />
+      <div className="space-y-2">
+        <Image src="/o_logo.svg" alt="Otego Logo" width={150} height={150} className="pb-6" />
       </div>
       <div className="space-y-4 font-mono text-center text-white mb-7">
         O.A.S.I.S
-        <div className="text-sm text-white pb-15">
+        <div className="text-sm text-white pb-6">
           Otego Asset, Sales & Inventory System
         </div>
       </div>
