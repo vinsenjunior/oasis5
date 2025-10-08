@@ -10,6 +10,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { MapPin, Calendar, User, ExternalLink, Eye } from "lucide-react"
 import { format } from "date-fns"
 import Image from 'next/image'
+import { convertDriveLink } from '@/utils/gdrive.js'
 
 // 导入提供的组件和钩子
 import Pagination from "@/components/Pagination"
@@ -367,6 +368,22 @@ export default function BrowseAssetsPage() {
                               Visual SQM :
                             </th>
                             <td className="px-6 py-3 border-x dark:border-neutral-600">{selectedAsset.numsizeSQM} m²</td>                        
+                          </tr>
+                          <tr className="bg-neutral-100 ">
+                            <th scope="row" className="px-6 py-3 border-x dark:border-neutral-600">
+                              Link Mockup :
+                            </th>
+                            <td className="px-6 py-3 border-x dark:border-neutral-600">
+                              <a href="#"
+                                 onClick={(e) => {
+                                    e.preventDefault()
+                                    const result = convertDriveLink(selectedAsset.lnkMockup)
+                                    if (result) window.open(result, '_blank')
+    }}
+                                target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="flex items-center gap-1 text-blue-600 hover:text-blue-800 text-sm"><ExternalLink />Link</a>
+                            </td>   
                           </tr>
                         </tbody>
                       </table>

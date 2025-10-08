@@ -342,6 +342,17 @@ export default function RentalFilters({
             </Select>
           </div>
 
+           {/* Filter Kode Aset */}
+          <div className="w-24 flex-none">
+            <Label className="text-sm">Kode Aset</Label>
+            <Input
+              placeholder="Kode aset..."
+              value={filters.assetCode}
+              onChange={(e) => handleFilterChange("assetCode", e.target.value)}
+              className="mt-1"
+            />
+          </div>
+          
           {/* Filter Media Group */}
           <div className="min-w-[150px] flex-1">
             <Label className="text-sm">Media Group</Label>
@@ -374,17 +385,6 @@ export default function RentalFilters({
                 ))}
               </SelectContent>
             </Select>
-          </div>
-
-          {/* Filter Kode Aset */}
-          <div className="w-24 flex-none">
-            <Label className="text-sm">Kode Aset</Label>
-            <Input
-              placeholder="Kode aset..."
-              value={filters.assetCode}
-              onChange={(e) => handleFilterChange("assetCode", e.target.value)}
-              className="mt-1"
-            />
           </div>
 
           {/* Filter Status */}
