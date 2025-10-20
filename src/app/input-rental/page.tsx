@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useState, useEffect } from "react"
@@ -31,9 +30,7 @@ import {
   CommandItem,
   CommandList,
 } from "@/components/ui/command"
-
-
-
+import { Checkbox } from "@/components/ui/checkbox" // Added for the checkbox functionality
 
 interface Client {
   clientID: number
@@ -63,6 +60,8 @@ export default function InputRentalPage() {
   const [clients, setClients] = useState<Client[]>([])
   const [assets, setAssets] = useState<Asset[]>([])
   const [stations, setStations] = useState<string[]>([])
+  const [digitalStations, setDigitalStations] = useState<string[]>([]) // New state for digital stations
+  const [selectedDigitalStations, setSelectedDigitalStations] = useState<string[]>([]) // New state for selected digital stations
   
   const [formData, setFormData] = useState({
     clientID: "",
@@ -109,6 +108,13 @@ export default function InputRentalPage() {
       // Extract unique stations
       const uniqueStations = [...new Set(assetsData.map((asset: Asset) => asset.txtStation))] as string[]
       setStations(uniqueStations)
+      
+      // Extract stations with digital screens
+      const digitalAssets = assetsData.filter((asset: Asset) => 
+        asset.txtMediaGroup.includes("DIGITAL SCREEN")
+      )
+      const uniqueDigitalStations = [...new Set(digitalAssets.map((asset: Asset) => asset.txtStation))] as string[]
+      setDigitalStations(uniqueDigitalStations)
     } catch (err) {
       setError("Gagal memuat data")
     }
@@ -159,11 +165,24 @@ export default function InputRentalPage() {
     }
   }
 
-  const getAssetCodesByStation = (station: string) => {
-    return assets.filter(asset => asset.txtStation === station).map(asset => ({
+// Modified function to exclude digital screen assets
+const getAssetCodesByStation = (station: string) => {
+  return assets
+    .filter(asset => 
+      asset.txtStation === station && 
+      !asset.txtMediaGroup.includes("DIGITAL SCREEN") // Exclude digital screens
+    )
+    .map(asset => ({
       code: asset.txtCode
-      // kodetitik: asset.kodetitik
     }))
+}
+
+  const handleDigitalStationChange = (station: string, checked: boolean) => {
+    if (checked) {
+      setSelectedDigitalStations(prev => [...prev, station])
+    } else {
+      setSelectedDigitalStations(prev => prev.filter(s => s !== station))
+    }
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -172,6 +191,14 @@ export default function InputRentalPage() {
     setError("")
     setSuccess("")
 
+     // Scroll to top after submission
+      window.scrollTo({
+          top: 0,
+          left: 0,
+          behavior: 'smooth' // Optional: for a smooth scrolling animation
+        });
+
+
     try {
       // Validate form
       if (!formData.clientID || !formData.datestart || !formData.dateend) {
@@ -179,14 +206,25 @@ export default function InputRentalPage() {
         return
       }
 
-      // Validate assets
+      // Process regular assets
       const validAssets = rentalAssets.filter(asset => asset.station && asset.assetCode)
-      if (validAssets.length === 0) {
+      
+      // Process digital stations
+      const digitalAssetsToRent: Asset[] = []
+      selectedDigitalStations.forEach(station => {
+        const stationDigitalAssets = assets.filter(asset => 
+          asset.txtStation === station && asset.txtMediaGroup.includes("DIGITAL SCREEN")
+        )
+        digitalAssetsToRent.push(...stationDigitalAssets)
+      })
+
+      // Validate that we have at least one asset (regular or digital)
+      if (validAssets.length === 0 && digitalAssetsToRent.length === 0) {
         setError("Mohon tambahkan minimal satu aset")
         return
       }
 
-      // Create rental data for each asset
+      // Create rental data for each regular asset
       for (const asset of validAssets) {
         // Find the asset by both code and station to ensure correctness
         const selectedAsset = assets.find(a => a.txtCode === asset.assetCode && a.txtStation === asset.station)
@@ -199,8 +237,6 @@ export default function InputRentalPage() {
           ...formData,
           assetID: selectedAsset.assetID,
           clientID: parseInt(formData.clientID),
-          // Include station in the rental data
-          // station: asset.station
         }
 
         const response = await fetch("/api/rentals", {
@@ -214,6 +250,26 @@ export default function InputRentalPage() {
         }
       }
 
+      // Create rental data for each digital asset
+      for (const digitalAsset of digitalAssetsToRent) {
+        const rentalData = {
+          ...formData,
+          assetID: digitalAsset.assetID,
+          clientID: parseInt(formData.clientID),
+        }
+
+        const response = await fetch("/api/rentals", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(rentalData)
+        })
+
+        if (!response.ok) {
+          throw new Error("Gagal menyimpan data sewa untuk aset digital")
+        }
+      }
+      
+
       setSuccess("Data sewa berhasil disimpan")
       // Reset form
       setFormData({
@@ -224,7 +280,15 @@ export default function InputRentalPage() {
         txtnotes: ""
       })
       setRentalAssets([{ station: "", assetCode: "", mediaGroup: "", mediaSubGroup: "" }])
+      setSelectedDigitalStations([]) // Reset selected digital stations
       setClientSearch("");
+
+       // Scroll to top after submission
+      window.scrollTo({
+          top: 0,
+          left: 0,
+          behavior: 'smooth' // Optional: for a smooth scrolling animation
+        });
       
     } catch (error) {
       setError("Terjadi kesalahan saat menyimpan data")
@@ -408,6 +472,35 @@ export default function InputRentalPage() {
                 />
               </div>
 
+              {/* New Digital Card */}
+              <Card className="p-4">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-lg">Digital</CardTitle>
+                  <CardDescription>Pilih stasiun dengan digital screen</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    {digitalStations.map(station => (
+                      <div key={station} className="flex items-center space-x-2">
+                        <Checkbox
+                          id={`digital-${station}`}
+                          checked={selectedDigitalStations.includes(station)}
+                          onCheckedChange={(checked) => 
+                            handleDigitalStationChange(station, checked as boolean)
+                          }
+                        />
+                        <Label htmlFor={`digital-${station}`} className="text-sm">
+                          {station}
+                        </Label>
+                      </div>
+                    ))}
+                    {digitalStations.length === 0 && (
+                      <p className="text-sm text-gray-500">Tidak ada stasiun dengan digital screen</p>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+
               <div className="space-y-4">
                 <div className="flex justify-between items-center">
                   <h3 className="text-lg font-semibold">Asset(s)</h3>
@@ -502,7 +595,7 @@ export default function InputRentalPage() {
                 </div>
               <div className="flex justify-end">
                 <Button type="submit" disabled={loading}>
-                  {loading ? "Loading..." : "Submit"}
+                  {loading ? "Submitting data..." : "Submit"}
                 </Button>
               </div>
             </form>
