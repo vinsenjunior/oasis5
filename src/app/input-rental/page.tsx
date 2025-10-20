@@ -107,7 +107,7 @@ export default function InputRentalPage() {
       setAssets(assetsData)
       
       // Extract unique stations
-      const uniqueStations = [...new Set(assetsData.map((asset: Asset) => asset.txtStation))]
+      const uniqueStations = [...new Set(assetsData.map((asset: Asset) => asset.txtStation))] as string[]
       setStations(uniqueStations)
     } catch (err) {
       setError("Gagal memuat data")
@@ -228,6 +228,7 @@ export default function InputRentalPage() {
       
     } catch (error) {
       setError("Terjadi kesalahan saat menyimpan data")
+      console.log(error);
     } finally {
       setLoading(false)
     }

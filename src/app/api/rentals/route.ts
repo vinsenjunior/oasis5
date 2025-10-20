@@ -57,32 +57,51 @@ export async function POST(request: Request) {
       )
     }
     
-    // Check for overlapping rentals
-    const overlappingRental = await db.rentDetail.findFirst({
-      where: {
-        assetID: body.assetID,
-        OR: [
-          {
-            AND: [
-              { datestart: { lte: body.datestart } },
-              { dateend: { gte: body.datestart } }
-            ]
-          },
-          {
-            AND: [
-              { datestart: { lte: body.dateend } },
-              { dateend: { gte: body.dateend } }
-            ]
-          },
-          {
-            AND: [
-              { datestart: { gte: body.datestart } },
-              { dateend: { lte: body.dateend } }
-            ]
-          }
-        ]
-      }
+    // Fetch asset to check media group
+    const asset = await db.asset.findUnique({
+      where: { assetID: body.assetID },
+      select: { txtMediaGroup: true }
     })
+    
+    if (!asset) {
+      return NextResponse.json(
+        { error: "Asset not found" },
+        { status: 404 }
+      )
+    }
+    
+    // Define special media groups that skip overlap validation
+    const specialMediaGroups = ["LCD DIGITAL SCREEN", "LED DIGITAL SCREEN"]
+    let overlappingRental: Record<string, any> | null = null
+    
+    // Only check for overlaps if asset is not in special media groups
+    if (!specialMediaGroups.includes(asset.txtMediaGroup)) {
+      overlappingRental = await db.rentDetail.findFirst({
+        where: {
+          assetID: body.assetID,
+          OR: [
+            {
+              AND: [
+                { datestart: { lte: body.datestart } },
+                { dateend: { gte: body.datestart } }
+              ]
+            },
+            {
+              AND: [
+                { datestart: { lte: body.dateend } },
+                { dateend: { gte: body.dateend } }
+              ]
+            },
+            {
+              AND: [
+                { datestart: { gte: body.datestart } },
+                { dateend: { lte: body.dateend } }
+              ]
+            }
+          ]
+        }
+      })
+    }
     
     if (overlappingRental) {
       return NextResponse.json(
