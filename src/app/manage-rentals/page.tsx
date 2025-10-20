@@ -137,59 +137,91 @@ export default function ManageRentalsPage() {
   const currentAssets = filteredRentals.slice(startIndex, startIndex + itemsPerPage)
 
   const handleEdit = (rental: Rental) => {
-    setEditingRental(rental)
+    setEditingRental(rental);
+    
+    // Safely format dates for input fields
+    const formatDateForInput = (dateString: string | null | undefined): string => {
+      if (!dateString) return "";
+      
+      try {
+        const date = new Date(dateString);
+        // Check if date is valid
+        if (isNaN(date.getTime())) return "";
+        
+        return format(date, "yyyy-MM-dd");
+      } catch (error) {
+        console.error("Error formatting date:", error);
+        return "";
+      }
+    };
+
     setEditForm({
       txtsales: rental.txtsales || "",
       lnkreport: rental.lnkreport || "",
       txtnotes: rental.txtnotes || "",
-      datestart: rental.datestart ? format(new Date(rental.datestart), "yyyy-MM-dd") : "",
-      dateend: rental.dateend ? format(new Date(rental.dateend), "yyyy-MM-dd") : ""
-    })
-  }
+      datestart: formatDateForInput(rental.datestart),
+      dateend: formatDateForInput(rental.dateend)
+    });
+  };
 
   const handleUpdate = async () => {
-    if (!editingRental) return
+    if (!editingRental) return;
 
-    setLoading(true)
-    setError("")
-    setSuccess("")
+    setLoading(true);
+    setError("");
+    setSuccess("");
 
     try {
-      // Validasi tanggal
+      // Validate dates
       if (!editForm.datestart || !editForm.dateend) {
-        throw new Error("Tanggal mulai dan selesai sewa harus diisi")
+        throw new Error("Tanggal mulai dan selesai sewa harus diisi");
       }
       
       if (new Date(editForm.dateend) < new Date(editForm.datestart)) {
-        throw new Error("Tanggal selesai harus setelah tanggal mulai")
+        throw new Error("Tanggal selesai harus setelah tanggal mulai");
+      }
+
+      // Prepare update payload
+      const updatePayload: any = {
+        rentid: editingRental.rentid,
+        datestart: new Date(editForm.datestart).toISOString(),
+        dateend: new Date(editForm.dateend).toISOString(),
+      };
+
+      // Only include fields that have changed
+      if (editForm.txtsales !== editingRental.txtsales) {
+        updatePayload.txtsales = editForm.txtsales;
+      }
+      
+      if (editForm.lnkreport !== editingRental.lnkreport) {
+        updatePayload.lnkreport = editForm.lnkreport;
+      }
+      
+      if (editForm.txtnotes !== editingRental.txtnotes) {
+        updatePayload.txtnotes = editForm.txtnotes;
       }
 
       const response = await fetch("/api/rentals", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          rentid: editingRental.rentid,
-          ...editForm,
-          datestart: editForm.datestart ? new Date(editForm.datestart).toISOString() : null,
-          dateend: editForm.dateend ? new Date(editForm.dateend).toISOString() : null
-        })
-      })
+        body: JSON.stringify(updatePayload)
+      });
 
       if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.error || "Gagal update data sewa")
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Gagal update data sewa");
       }
 
-      setSuccess("Data sewa berhasil diupdate")
-      setEditingRental(null)
-      await fetchData()
+      setSuccess("Data sewa berhasil diupdate");
+      setEditingRental(null);
+      await fetchData();
       
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Terjadi kesalahan saat update data")
+      setError(err instanceof Error ? err.message : "Terjadi kesalahan saat update data");
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   const handleDelete = async (rentalId: number) => {
     setDeleteLoading(true)
@@ -315,36 +347,65 @@ export default function ManageRentalsPage() {
   };
 
   // 新增函数：打开批量编辑对话框
-  const handleBatchEdit = () => {
+const handleBatchEdit = () => {
+  // Scroll to top after submission
+  window.scrollTo({
+    top: 0,
+    left: 0,
+    behavior: 'smooth' // Optional: for a smooth scrolling animation
+  });
 
-      // Scroll to top after submission
-      window.scrollTo({
-          top: 0,
-          left: 0,
-          behavior: 'smooth' // Optional: for a smooth scrolling animation
-        });
+  if (selectedRentals.length === 0) {
+    setError("Tidak ada data yang dipilih");
+    return;
+  }
 
-    if (selectedRentals.length === 0) {
-      setError("Tidak ada data yang dipilih");
-      return;
-    }
+  if (!validateSameClient()) {
+    setError("Hanya dapat mengedit data dari client yang sama");
+    return;
+  }
 
-    if (!validateSameClient()) {
-      setError("Hanya dapat mengedit data dari client yang sama");
-      return;
-    }
+  // Get the selected rental data
+  const selectedRentalData = rentals.filter(rental => 
+    selectedRentals.includes(rental.rentid)
+  );
 
-    // 初始化批量编辑表单
-    setBatchEditForm({
-      datestart: "",
-      dateend: "",
-      txtsales: "",
-      lnkreport: "",
-      txtnotes: ""
-    });
-    
-    setBatchEditDialogOpen(true);
-  };
+  // Initialize form with values from the first selected rental
+  const firstRental = selectedRentalData[0];
+  
+  // Check if all selected rentals have the same values for each field
+  const allSameDateStart = selectedRentalData.every(r => 
+    r.datestart === firstRental.datestart
+  );
+  
+  const allSameDateEnd = selectedRentalData.every(r => 
+    r.dateend === firstRental.dateend
+  );
+  
+  const allSameSales = selectedRentalData.every(r => 
+    r.txtsales === firstRental.txtsales
+  );
+  
+  const allSameReport = selectedRentalData.every(r => 
+    r.lnkreport === firstRental.lnkreport
+  );
+  
+  const allSameNotes = selectedRentalData.every(r => 
+    r.txtnotes === firstRental.txtnotes
+  );
+
+  // Initialize the batch edit form
+  setBatchEditForm({
+    datestart: allSameDateStart ? (firstRental.datestart ? format(new Date(firstRental.datestart), "yyyy-MM-dd") : "") : "",
+    dateend: allSameDateEnd ? (firstRental.dateend ? format(new Date(firstRental.dateend), "yyyy-MM-dd") : "") : "",
+    txtsales: allSameSales ? (firstRental.txtsales || "") : "",
+    lnkreport: allSameReport ? (firstRental.lnkreport || "") : "",
+    txtnotes: allSameNotes ? (firstRental.txtnotes || "") : ""
+  });
+  
+  setBatchEditDialogOpen(true);
+};
+
 
   // 新增函数：批量更新
   const handleBatchUpdate = async () => {
@@ -664,17 +725,16 @@ export default function ManageRentalsPage() {
                                     <Edit className="w-4 h-4" />
                                   </Button>
                                 </DialogTrigger>
-                                
                                 <DialogContent className="max-w-2xl">
-                                  <DialogHeader>
-                                    <DialogTitle>Edit Data Sewa #{editingRental?.rentid}</DialogTitle>
-                                    <DialogDescription>
-                                      Update informasi sewa aset
-                                    </DialogDescription>
-                                  </DialogHeader>
+                                    <DialogHeader>
+                                      <DialogTitle>Edit Data Sewa #{editingRental?.rentid}</DialogTitle>
+                                      <DialogDescription>
+                                        Update informasi sewa aset
+                                      </DialogDescription>
+                                    </DialogHeader>
 
-                                  <div className="space-y-4">
-                                    <div className="grid grid-cols-2 gap-4">
+                                    <div className="space-y-4">
+                                      <div className="grid grid-cols-2 gap-4">
                                         <div className="space-y-2">
                                           <Label htmlFor="datestart">Tanggal Mulai Sewa</Label>
                                           <Input
@@ -682,15 +742,15 @@ export default function ManageRentalsPage() {
                                             type="date"
                                             value={editForm.datestart}
                                             onChange={(e) => {
-                                              setEditForm(prev => ({ ...prev, datestart: e.target.value }))
+                                              setEditForm(prev => ({ ...prev, datestart: e.target.value }));
                                               if (editForm.dateend && e.target.value > editForm.dateend) {
-                                                setEditForm(prev => ({ ...prev, dateend: "" }))
+                                                setEditForm(prev => ({ ...prev, dateend: "" }));
                                               }
                                             }}
                                           />
                                           {editingRental && editForm.datestart !== format(new Date(editingRental.datestart), "yyyy-MM-dd") && (
-                                              <Badge variant="secondary">Diubah</Badge>
-                                            )}
+                                            <Badge variant="secondary">Diubah</Badge>
+                                          )}
                                         </div>
 
                                         <div className="space-y-2">
@@ -710,73 +770,86 @@ export default function ManageRentalsPage() {
                                             <p className="text-sm text-red-500">Tanggal selesai harus setelah tanggal mulai</p>
                                           )}
                                         </div>
+                                      </div>
+
+                                      <div className="space-y-2">
+                                        <Label htmlFor="txtsales">Nama Sales</Label>
+                                        <Input
+                                          id="txtsales"
+                                          value={editForm.txtsales}
+                                          onChange={(e) => setEditForm(prev => ({ ...prev, txtsales: e.target.value }))}
+                                          placeholder="Masukkan nama sales"
+                                        />
+                                        {editingRental && editForm.txtsales !== editingRental.txtsales && (
+                                          <Badge variant="secondary">Diubah</Badge>
+                                        )}
+                                      </div>
+
+                                      <div className="space-y-2">
+                                        <Label htmlFor="lnkreport">Link Report</Label>
+                                        <Input
+                                          id="lnkreport"
+                                          value={editForm.lnkreport}
+                                          onChange={(e) => setEditForm(prev => ({ ...prev, lnkreport: e.target.value }))}
+                                          placeholder="https://example.com/report"
+                                        />
+                                        {editingRental && editForm.lnkreport !== editingRental.lnkreport && (
+                                          <Badge variant="secondary">Diubah</Badge>
+                                        )}
+                                      </div>
+
+                                      <div className="space-y-2">
+                                        <Label htmlFor="txtnotes">Catatan</Label>
+                                        <Textarea
+                                          id="txtnotes"
+                                          value={editForm.txtnotes}
+                                          onChange={(e) => setEditForm(prev => ({ ...prev, txtnotes: e.target.value }))}
+                                          rows={3}
+                                          placeholder="Masukkan catatan tambahan"
+                                        />
+                                        {editingRental && editForm.txtnotes !== editingRental.txtnotes && (
+                                          <Badge variant="secondary">Diubah</Badge>
+                                        )}
+                                      </div>
                                     </div>
 
-                                    <div className="space-y-2">
-                                      <Label htmlFor="txtsales">Nama Sales</Label>
-                                      <Input
-                                        id="txtsales"
-                                        value={editForm.txtsales}
-                                        onChange={(e) => setEditForm(prev => ({ ...prev, txtsales: e.target.value }))}
-                                      />
-                                    </div>
+                                    <DialogFooter>
+                                      <Button variant="outline" onClick={() => setEditingRental(null)}>
+                                        Batal
+                                      </Button>
 
-                                    <div className="space-y-2">
-                                      <Label htmlFor="lnkreport">Link Report</Label>
-                                      <Input
-                                        id="lnkreport"
-                                        value={editForm.lnkreport}
-                                        onChange={(e) => setEditForm(prev => ({ ...prev, lnkreport: e.target.value }))}
-                                      />
-                                    </div>
-
-                                    <div className="space-y-2">
-                                      <Label htmlFor="txtnotes">Catatan</Label>
-                                      <Textarea
-                                        id="txtnotes"
-                                        value={editForm.txtnotes}
-                                        onChange={(e) => setEditForm(prev => ({ ...prev, txtnotes: e.target.value }))}
-                                        rows={3}
-                                      />
-                                    </div>
-                                  </div>
-
-                                  <DialogFooter>
-                                    <Button variant="outline" onClick={() => setEditingRental(null)}>
-                                      Batal
-                                    </Button>
-
-                                    <AlertDialog>
-                                      <AlertDialogTrigger asChild>
-                                        <Button 
-                                          disabled={loading || !editForm.datestart || !editForm.dateend || 
-                                                  (editForm.datestart && editForm.dateend && new Date(editForm.dateend) < new Date(editForm.datestart))}
-                                        >
-                                          {loading ? "Loading..." : "Update"}
-                                        </Button>
-                                      </AlertDialogTrigger>
-                                      <AlertDialogContent>
-                                        <AlertDialogHeader>
-                                          <AlertDialogTitle>Konfirmasi Update</AlertDialogTitle>
-                                          <AlertDialogDescription>
-                                            Apakah Anda yakin ingin menyimpan perubahan data sewa ini?
-                                          </AlertDialogDescription>
-                                        </AlertDialogHeader>
-                                        <AlertDialogFooter>
-                                          <AlertDialogCancel>Batal</AlertDialogCancel>
-                                          <AlertDialogAction
-                                            onClick={async () => {
-                                              await handleUpdate()
-                                              setEditingRental(null)
-                                            }}
+                                      <AlertDialog>
+                                        <AlertDialogTrigger asChild>
+                                          <Button 
+                                            disabled={loading || !editForm.datestart || !editForm.dateend || 
+                                                    (editForm.datestart && editForm.dateend && new Date(editForm.dateend) < new Date(editForm.datestart))}
                                           >
-                                            Ya, Simpan
-                                          </AlertDialogAction>
-                                        </AlertDialogFooter>
-                                      </AlertDialogContent>
-                                    </AlertDialog>
-                                  </DialogFooter>
-                                </DialogContent>
+                                            {loading ? "Loading..." : "Update"}
+                                          </Button>
+                                        </AlertDialogTrigger>
+                                        <AlertDialogContent>
+                                          <AlertDialogHeader>
+                                            <AlertDialogTitle>Konfirmasi Update</AlertDialogTitle>
+                                            <AlertDialogDescription>
+                                              Apakah Anda yakin ingin menyimpan perubahan data sewa ini?
+                                            </AlertDialogDescription>
+                                          </AlertDialogHeader>
+                                          <AlertDialogFooter>
+                                            <AlertDialogCancel>Batal</AlertDialogCancel>
+                                            <AlertDialogAction
+                                              onClick={async () => {
+                                                await handleUpdate();
+                                                setEditingRental(null);
+                                              }}
+                                            >
+                                              Ya, Simpan
+                                            </AlertDialogAction>
+                                          </AlertDialogFooter>
+                                        </AlertDialogContent>
+                                      </AlertDialog>
+                                    </DialogFooter>
+                                  </DialogContent>
+                                
                               </Dialog>
 
                               <AlertDialog>
