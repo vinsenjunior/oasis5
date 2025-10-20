@@ -25,7 +25,7 @@ export default function Pagination({
   itemsPerPage,
   onPageChange,
   onItemsPerPageChange,
-  itemsPerPageOptions = [10, 20, 50, 100],
+  itemsPerPageOptions = [10, 20, 50],
   showItemsPerPageSelector = false,
   showPageInfo = true,
   className = ""
@@ -141,7 +141,7 @@ export default function Pagination({
             value={itemsPerPage.toString()}
             onValueChange={(value) => onItemsPerPageChange(parseInt(value))}
           >
-            <SelectTrigger className="w-16">
+            <SelectTrigger className="w-auto">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>

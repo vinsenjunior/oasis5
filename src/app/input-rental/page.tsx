@@ -30,7 +30,7 @@ import {
   CommandItem,
   CommandList,
 } from "@/components/ui/command"
-import { Checkbox } from "@/components/ui/checkbox" // Added for the checkbox functionality
+import { Checkbox } from "@/components/ui/checkbox"
 
 interface Client {
   clientID: number
@@ -60,8 +60,8 @@ export default function InputRentalPage() {
   const [clients, setClients] = useState<Client[]>([])
   const [assets, setAssets] = useState<Asset[]>([])
   const [stations, setStations] = useState<string[]>([])
-  const [digitalStations, setDigitalStations] = useState<string[]>([]) // New state for digital stations
-  const [selectedDigitalStations, setSelectedDigitalStations] = useState<string[]>([]) // New state for selected digital stations
+  const [digitalStations, setDigitalStations] = useState<string[]>([])
+  const [selectedDigitalStations, setSelectedDigitalStations] = useState<string[]>([])
   
   const [formData, setFormData] = useState({
     clientID: "",
@@ -165,17 +165,17 @@ export default function InputRentalPage() {
     }
   }
 
-// Modified function to exclude digital screen assets
-const getAssetCodesByStation = (station: string) => {
-  return assets
-    .filter(asset => 
-      asset.txtStation === station && 
-      !asset.txtMediaGroup.includes("DIGITAL SCREEN") // Exclude digital screens
-    )
-    .map(asset => ({
-      code: asset.txtCode
-    }))
-}
+  // Modified function to exclude digital screen assets
+  const getAssetCodesByStation = (station: string) => {
+    return assets
+      .filter(asset => 
+        asset.txtStation === station && 
+        !asset.txtMediaGroup.includes("DIGITAL SCREEN") // Exclude digital screens
+      )
+      .map(asset => ({
+        code: asset.txtCode
+      }))
+  }
 
   const handleDigitalStationChange = (station: string, checked: boolean) => {
     if (checked) {
@@ -190,14 +190,6 @@ const getAssetCodesByStation = (station: string) => {
     setLoading(true)
     setError("")
     setSuccess("")
-
-     // Scroll to top after submission
-      window.scrollTo({
-          top: 0,
-          left: 0,
-          behavior: 'smooth' // Optional: for a smooth scrolling animation
-        });
-
 
     try {
       // Validate form
@@ -268,7 +260,6 @@ const getAssetCodesByStation = (station: string) => {
           throw new Error("Gagal menyimpan data sewa untuk aset digital")
         }
       }
-      
 
       setSuccess("Data sewa berhasil disimpan")
       // Reset form
@@ -280,15 +271,8 @@ const getAssetCodesByStation = (station: string) => {
         txtnotes: ""
       })
       setRentalAssets([{ station: "", assetCode: "", mediaGroup: "", mediaSubGroup: "" }])
-      setSelectedDigitalStations([]) // Reset selected digital stations
+      setSelectedDigitalStations([])
       setClientSearch("");
-
-       // Scroll to top after submission
-      window.scrollTo({
-          top: 0,
-          left: 0,
-          behavior: 'smooth' // Optional: for a smooth scrolling animation
-        });
       
     } catch (error) {
       setError("Terjadi kesalahan saat menyimpan data")
@@ -338,96 +322,106 @@ const getAssetCodesByStation = (station: string) => {
               
               {/* Filter client */}
               <div className="space-y-2">
-              <Label>Client</Label>
+                <Label>Client</Label>
+                <div className="flex space-x-2">
+                  <Popover className="flex-grow">
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        role="combobox"
+                        aria-expanded="false"
+                        className="w-3/4 justify-between"
+                      >
+                        {formData.clientID
+                          ? clients.find(c => c.clientID.toString() === formData.clientID)?.txtClient
+                          : (clientSearch || "Pilih atau ketik client...")}
+                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                      </Button>
+                    </PopoverTrigger>
 
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    role="combobox"
-                    aria-expanded="false"
-                    className="w-full justify-between"
-                  >
-                    {formData.clientID
-                      ? clients.find(c => c.clientID.toString() === formData.clientID)?.txtClient
-                      : (clientSearch || "Pilih atau ketik client...")}
-                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                  </Button>
-                </PopoverTrigger>
-
-                <PopoverContent className="w-full max-w-md p-0 max-h-[60vh] overflow-y-auto">
-                  <Command>
-                    <CommandInput
-                      value={clientSearch}
-                      onValueChange={(value) => {
-                        const v = value.trim()
-                        setClientSearch(value)
-                        if (v === "") {
-                          handleInputChange("clientID", "")
-                          return
-                        }
-                        // jika user mengetik persis nama/company yang ada -> set clientID
-                        const exact = clients.find(
-                          (c) =>
-                            c.txtClient.toLowerCase() === v.toLowerCase() ||
-                            c.txtCompany.toLowerCase() === v.toLowerCase()
-                        )
-                        if (exact) {
-                          handleInputChange("clientID", exact.clientID.toString())
-                        } else {
-                          // masih mengetik, jangan keep previous client id
-                          handleInputChange("clientID", "")
-                        }
-                      }}
-                      placeholder="Ketik nama client atau company..."
-                    />
-
-                    <CommandList>
-                      {/* hitung filtered secara manual untuk menghindari fuzzy match */}
-                      {(() => {
-                        const q = clientSearch.trim().toLowerCase()
-                        const filtered = q
-                          ? clients.filter(
+                    <PopoverContent className="w-full max-w-md p-0 max-h-[60vh] overflow-y-auto">
+                      <Command>
+                        <CommandInput
+                          value={clientSearch}
+                          onValueChange={(value) => {
+                            const v = value.trim()
+                            setClientSearch(value)
+                            if (v === "") {
+                              handleInputChange("clientID", "")
+                              return
+                            }
+                            // jika user mengetik persis nama/company yang ada -> set clientID
+                            const exact = clients.find(
                               (c) =>
-                                c.txtClient.toLowerCase().includes(q) ||
-                                c.txtCompany.toLowerCase().includes(q)
+                                c.txtClient.toLowerCase() === v.toLowerCase() ||
+                                c.txtCompany.toLowerCase() === v.toLowerCase()
                             )
-                          : clients
+                            if (exact) {
+                              handleInputChange("clientID", exact.clientID.toString())
+                            } else {
+                              // masih mengetik, jangan keep previous client id
+                              handleInputChange("clientID", "")
+                            }
+                          }}
+                          placeholder="Ketik nama client atau company..."
+                        />
 
-                        if (filtered.length === 0) {
-                          return <CommandEmpty>Tidak ada client ditemukan</CommandEmpty>
-                        }
+                        <CommandList>
+                          {/* hitung filtered secara manual untuk menghindari fuzzy match */}
+                          {(() => {
+                            const q = clientSearch.trim().toLowerCase()
+                            const filtered = q
+                              ? clients.filter(
+                                  (c) =>
+                                    c.txtClient.toLowerCase().includes(q) ||
+                                    c.txtCompany.toLowerCase().includes(q)
+                                )
+                              : clients
 
-                        return (
-                          <CommandGroup>
-                            {filtered.map((client) => (
-                              <CommandItem
-                                key={client.clientID}
-                                value={client.txtClient}
-                                onSelect={() => {
-                                  // pilih client -> set id + tampilkan nama di input
-                                  handleInputChange("clientID", client.clientID.toString())
-                                  setClientSearch(client.txtClient)
-                                }}
-                              >
-                                <div className="flex flex-col">
-                                  <span>{client.txtClient}</span>
-                                  {client.txtCompany && (
-                                    <span className="text-sm text-muted-foreground">
-                                      {client.txtCompany}
-                                    </span>
-                                  )}
-                                </div>
-                              </CommandItem>
-                            ))}
-                          </CommandGroup>
-                        )
-                      })()}
-                    </CommandList>
-                  </Command>
-                </PopoverContent>
-              </Popover>
-            </div>
+                            if (filtered.length === 0) {
+                              return <CommandEmpty>Tidak ada client ditemukan</CommandEmpty>
+                            }
+
+                            return (
+                              <CommandGroup>
+                                {filtered.map((client) => (
+                                  <CommandItem
+                                    key={client.clientID}
+                                    value={client.txtClient}
+                                    onSelect={() => {
+                                      // pilih client -> set id + tampilkan nama di input
+                                      handleInputChange("clientID", client.clientID.toString())
+                                      setClientSearch(client.txtClient)
+                                    }}
+                                  >
+                                    <div className="flex flex-col">
+                                      <span>{client.txtClient}</span>
+                                      {client.txtCompany && (
+                                        <span className="text-sm text-muted-foreground">
+                                          {client.txtCompany}
+                                        </span>
+                                      )}
+                                    </div>
+                                  </CommandItem>
+                                ))}
+                              </CommandGroup>
+                            )
+                          })()}
+                        </CommandList>
+                      </Command>
+                    </PopoverContent>
+                  </Popover>
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    size="icon"
+                    onClick={() => router.push("/input-client")}
+                    title="Tambah Client Baru"
+                  >
+                    <Plus className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
 
               {/* Input Sales */}
                 <div className="space-y-2">
@@ -472,32 +466,33 @@ const getAssetCodesByStation = (station: string) => {
                 />
               </div>
 
-              {/* New Digital Card */}
+              {/* New Digital Card with Two Columns */}
               <Card className="p-4">
                 <CardHeader className="pb-3">
                   <CardTitle className="text-lg">Digital</CardTitle>
                   <CardDescription>Pilih stasiun dengan digital screen</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                    {digitalStations.map(station => (
-                      <div key={station} className="flex items-center space-x-2">
-                        <Checkbox
-                          id={`digital-${station}`}
-                          checked={selectedDigitalStations.includes(station)}
-                          onCheckedChange={(checked) => 
-                            handleDigitalStationChange(station, checked as boolean)
-                          }
-                        />
-                        <Label htmlFor={`digital-${station}`} className="text-sm">
-                          {station}
-                        </Label>
-                      </div>
-                    ))}
-                    {digitalStations.length === 0 && (
-                      <p className="text-sm text-gray-500">Tidak ada stasiun dengan digital screen</p>
-                    )}
-                  </div>
+                  {digitalStations.length > 0 ? (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      {digitalStations.map(station => (
+                        <div key={station} className="flex items-center space-x-2">
+                          <Checkbox
+                            id={`digital-${station}`}
+                            checked={selectedDigitalStations.includes(station)}
+                            onCheckedChange={(checked) => 
+                              handleDigitalStationChange(station, checked as boolean)
+                            }
+                          />
+                          <Label htmlFor={`digital-${station}`} className="text-sm">
+                            {station}
+                          </Label>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-gray-500">Tidak ada stasiun dengan digital screen</p>
+                  )}
                 </CardContent>
               </Card>
 
@@ -595,7 +590,7 @@ const getAssetCodesByStation = (station: string) => {
                 </div>
               <div className="flex justify-end">
                 <Button type="submit" disabled={loading}>
-                  {loading ? "Submitting data..." : "Submit"}
+                  {loading ? "Loading..." : "Submit"}
                 </Button>
               </div>
             </form>

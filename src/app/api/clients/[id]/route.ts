@@ -45,7 +45,7 @@ export async function PUT(
 
     if (!existingClient) {
       return NextResponse.json(
-        { error: 'Client not found' },
+        { error: 'Client tidak ditemukan' },
         { status: 404 }
       )
     }
@@ -63,7 +63,7 @@ export async function PUT(
 
       if (duplicateClient) {
         return NextResponse.json(
-          { error: 'Client with this name already exists' },
+          { error: 'Sudah ada Client dengan nama yang sama' },
           { status: 400 }
         )
       }
@@ -105,7 +105,7 @@ export async function DELETE(
 
     if (existingRentals.length > 0) {
       return NextResponse.json(
-        { error: 'Cannot delete client with existing rentals' },
+        { error: 'Tidak bisa menghapus Client yang memiliki data sewa' },
         { status: 400 }
       )
     }
@@ -116,7 +116,7 @@ export async function DELETE(
       }
     })
 
-    return NextResponse.json({ message: 'Client deleted successfully' })
+    return NextResponse.json({ message: 'Client berhasil dihapus' })
   } catch (error) {
     console.error('Error deleting client:', error)
     return NextResponse.json(

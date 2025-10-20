@@ -13,6 +13,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
+import { Checkbox } from "@/components/ui/checkbox"
 import { Edit, Trash2, Eye, Calendar } from "lucide-react"
 import { format } from "date-fns"
 import RentalFilters from "@/components/RentalFilters"
@@ -66,8 +67,21 @@ export default function ManageRentalsPage() {
     dateend: ""     
   })
   
+  // 新增状态：批量操作相关
+  const [selectedRentals, setSelectedRentals] = useState<number[]>([])
+  const [batchEditDialogOpen, setBatchEditDialogOpen] = useState(false)
+  const [batchEditForm, setBatchEditForm] = useState({
+    datestart: "",
+    dateend: "",
+    txtsales: "",
+    lnkreport: "",
+    txtnotes: ""
+  })
+  const [selectedClientID, setSelectedClientID] = useState<number | null>(null)
+  
   const [loading, setLoading] = useState(true)
   const [deleteLoading, setDeleteLoading] = useState(false)
+  const [batchLoading, setBatchLoading] = useState(false)
   const [error, setError] = useState("")
   const [success, setSuccess] = useState("")
 
@@ -201,6 +215,204 @@ export default function ManageRentalsPage() {
     }
   }
 
+  // 新增函数：处理单个复选框选择
+  const handleSelectRental = (rentalId: number, clientID: number) => {
+    setSelectedRentals(prev => {
+      if (prev.includes(rentalId)) {
+        return prev.filter(id => id !== rentalId);
+      } else {
+        // 如果是第一次选择，设置clientID
+        if (prev.length === 0) {
+          setSelectedClientID(clientID);
+        }
+        return [...prev, rentalId];
+      }
+    });
+  };
+
+  // 新增函数：处理全选
+  const handleSelectAll = () => {
+    if (selectedRentals.length === currentAssets.length) {
+      // 如果已经全选，则取消全选
+      setSelectedRentals([]);
+      setSelectedClientID(null);
+    } else {
+      // 否则全选当前页
+      const allIds = currentAssets.map(rental => rental.rentid);
+      setSelectedRentals(allIds);
+      
+      // 检查所有选中的数据是否属于同一个client
+      const clientIDs = currentAssets.map(rental => rental.clientID);
+      const uniqueClientIDs = [...new Set(clientIDs)];
+      
+      if (uniqueClientIDs.length === 1) {
+        setSelectedClientID(uniqueClientIDs[0]);
+      } else {
+        setSelectedClientID(null);
+      }
+    }
+  };
+
+  // 新增函数：检查选中的数据是否属于同一个client
+  const validateSameClient = () => {
+    if (selectedRentals.length === 0) return false;
+    
+    const selectedData = rentals.filter(rental => selectedRentals.includes(rental.rentid));
+    const clientIDs = selectedData.map(rental => rental.clientID);
+    const uniqueClientIDs = [...new Set(clientIDs)];
+    
+    return uniqueClientIDs.length === 1;
+  };
+
+  // 新增函数：批量删除
+  const handleBatchDelete = async () => {
+
+      // Scroll to top after submission
+      window.scrollTo({
+          top: 0,
+          left: 0,
+          behavior: 'smooth' // Optional: for a smooth scrolling animation
+        });
+
+    if (selectedRentals.length === 0) {
+      setError("Tidak ada data yang dipilih");
+      return;
+    }
+
+    if (!validateSameClient()) {
+      
+      setError("Hanya dapat menghapus data dari client yang sama");
+      return;
+    }
+
+    setBatchLoading(true);
+    setError("");
+
+    try {
+      // 循环删除每个选中的rental
+      const deletePromises = selectedRentals.map(rentid => 
+        fetch(`/api/rentals?rentId=${rentid}`, {
+          method: "DELETE"
+        })
+      );
+
+      const responses = await Promise.all(deletePromises);
+      const hasError = responses.some(response => !response.ok);
+
+      if (hasError) {
+        throw new Error("Beberapa data gagal dihapus");
+      }
+
+      setSuccess(`${selectedRentals.length} data sewa berhasil dihapus`);
+      setSelectedRentals([]);
+      setSelectedClientID(null);
+      await fetchData();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Terjadi kesalahan saat hapus data");
+    } finally {
+      setBatchLoading(false);
+    }
+  };
+
+  // 新增函数：打开批量编辑对话框
+  const handleBatchEdit = () => {
+
+      // Scroll to top after submission
+      window.scrollTo({
+          top: 0,
+          left: 0,
+          behavior: 'smooth' // Optional: for a smooth scrolling animation
+        });
+
+    if (selectedRentals.length === 0) {
+      setError("Tidak ada data yang dipilih");
+      return;
+    }
+
+    if (!validateSameClient()) {
+      setError("Hanya dapat mengedit data dari client yang sama");
+      return;
+    }
+
+    // 初始化批量编辑表单
+    setBatchEditForm({
+      datestart: "",
+      dateend: "",
+      txtsales: "",
+      lnkreport: "",
+      txtnotes: ""
+    });
+    
+    setBatchEditDialogOpen(true);
+  };
+
+  // 新增函数：批量更新
+  const handleBatchUpdate = async () => {
+      // Scroll to top after submission
+      window.scrollTo({
+          top: 0,
+          left: 0,
+          behavior: 'smooth' // Optional: for a smooth scrolling animation
+        });
+        
+    if (selectedRentals.length === 0) return;
+
+    setBatchLoading(true);
+    setError("");
+    setSuccess("");
+
+    try {
+      // 验证日期
+      if (batchEditForm.datestart && batchEditForm.dateend) {
+        if (new Date(batchEditForm.dateend) < new Date(batchEditForm.datestart)) {
+          throw new Error("Tanggal selesai harus setelah tanggal mulai");
+        }
+      }
+
+      // 循环更新每个选中的rental
+      const updatePromises = selectedRentals.map(rentid => {
+        const updateData: any = {};
+        if (batchEditForm.datestart) updateData.datestart = new Date(batchEditForm.datestart).toISOString();
+        if (batchEditForm.dateend) updateData.dateend = new Date(batchEditForm.dateend).toISOString();
+        if (batchEditForm.txtsales !== undefined) updateData.txtsales = batchEditForm.txtsales;
+        if (batchEditForm.lnkreport !== undefined) updateData.lnkreport = batchEditForm.lnkreport;
+        if (batchEditForm.txtnotes !== undefined) updateData.txtnotes = batchEditForm.txtnotes;
+
+        return fetch("/api/rentals", {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            rentid,
+            ...updateData
+          })
+        });
+      });
+
+      const responses = await Promise.all(updatePromises);
+      const hasError = responses.some(response => !response.ok);
+
+      if (hasError) {
+        throw new Error("Beberapa data gagal diupdate");
+      }
+
+      setSuccess(`${selectedRentals.length} data sewa berhasil diupdate`);
+      setBatchEditDialogOpen(false);
+      setSelectedRentals([]);
+      setSelectedClientID(null);
+      await fetchData();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Terjadi kesalahan saat update data");
+    } finally {
+      setBatchLoading(false);
+    }
+  };
+
+  // 新增：当页面或筛选条件变化时，清空选择
+  useEffect(() => {
+    setSelectedRentals([]);
+    setSelectedClientID(null);
+  }, [currentPage, itemsPerPage, filteredRentals]);
+
   const getStatusBadge = (startDate: string | null, endDate: string | null) => {
     const today = new Date();
     
@@ -223,16 +435,6 @@ export default function ManageRentalsPage() {
       return <Badge variant="destructive">Selesai</Badge>;
     }
   };
-
-  // Reset to page 1 when filters change
-  useEffect(() => {
-    setCurrentPage(1)
-  }, [filteredRentals.length])
-
-  // Reset to page 1 when items per page changes
-  useEffect(() => {
-    setCurrentPage(1)
-  }, [itemsPerPage])
 
   if (!userRole) {
     return (
@@ -277,6 +479,54 @@ export default function ManageRentalsPage() {
           initialFilters={filters}
         />
 
+        {/* 批量操作栏 */}
+        {selectedRentals.length > 0 && (
+          <div className="flex justify-between items-center mb-4 p-3 bg-blue-50 rounded-lg">
+            <div className="flex items-center">
+              <span className="text-sm font-medium text-blue-800">
+                {selectedRentals.length} data dipilih
+              </span>
+              {selectedClientID && (
+                <Badge variant="secondary" className="ml-2">
+                  Client ID: {selectedClientID}
+                </Badge>
+              )}
+            </div>
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={handleBatchEdit}>
+                <Edit className="w-4 h-4 mr-2" />
+                Edit Batch
+              </Button>
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button variant="destructive" disabled={batchLoading}>
+                    <Trash2 className="w-4 h-4 mr-2" />
+                    {batchLoading ? "Loading..." : "Hapus Batch"}
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Konfirmasi Hapus Batch</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      Apakah Anda yakin ingin menghapus {selectedRentals.length} data sewa? 
+                      Tindakan ini tidak dapat dibatalkan.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Batal</AlertDialogCancel>
+                    <AlertDialogAction 
+                      onClick={handleBatchDelete}
+                      className="bg-red-600 hover:bg-red-700"
+                    >
+                      Hapus
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            </div>
+          </div>
+        )}
+
         {/* Rentals Table */}
         <Card>
           <CardContent className="p-0">
@@ -292,6 +542,13 @@ export default function ManageRentalsPage() {
                 <Table>
                   <TableHeader>
                     <TableRow>
+                      <TableHead className="w-12">
+                        <Checkbox
+                          checked={selectedRentals.length === currentAssets.length && currentAssets.length > 0}
+                          onCheckedChange={handleSelectAll}
+                          aria-label="Select all"
+                        />
+                      </TableHead>
                       <TableHead>Rent ID</TableHead>
                       <TableHead>Client</TableHead>
                       <TableHead>Aset</TableHead>
@@ -306,6 +563,13 @@ export default function ManageRentalsPage() {
                     {currentAssets.length > 0 ? (
                       currentAssets.map((rental) => (
                         <TableRow key={rental.rentid}>
+                          <TableCell>
+                            <Checkbox
+                              checked={selectedRentals.includes(rental.rentid)}
+                              onCheckedChange={() => handleSelectRental(rental.rentid, rental.clientID)}
+                              aria-label={`Select rental ${rental.rentid}`}
+                            />
+                          </TableCell>
                           <TableCell className="font-medium">#{rental.rentid}</TableCell>
                           <TableCell>
                             <div>
@@ -547,7 +811,7 @@ export default function ManageRentalsPage() {
                       ))
                     ) : (
                       <TableRow>
-                        <TableCell colSpan={8} className="text-center py-8">
+                        <TableCell colSpan={9} className="text-center py-8">
                           <p className="text-gray-500">Tidak ada data sewa yang ditemukan</p>
                         </TableCell>
                       </TableRow>
@@ -558,6 +822,117 @@ export default function ManageRentalsPage() {
             )}
           </CardContent>
         </Card>
+
+        {/* 批量编辑对话框 */}
+        <Dialog open={batchEditDialogOpen} onOpenChange={setBatchEditDialogOpen}>
+          <DialogContent className="max-w-2xl">
+            <DialogHeader>
+              <DialogTitle>Edit Batch ({selectedRentals.length} data)</DialogTitle>
+              <DialogDescription>
+                Update informasi sewa aset untuk {selectedRentals.length} data yang dipilih
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="batch-datestart">Tanggal Mulai Sewa</Label>
+                  <Input
+                    id="batch-datestart"
+                    type="date"
+                    value={batchEditForm.datestart}
+                    onChange={(e) => {
+                      setBatchEditForm(prev => ({ ...prev, datestart: e.target.value }));
+                      if (batchEditForm.dateend && e.target.value > batchEditForm.dateend) {
+                        setBatchEditForm(prev => ({ ...prev, dateend: "" }));
+                      }
+                    }}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="batch-dateend">Tanggal Selesai Sewa</Label>
+                  <Input
+                    id="batch-dateend"
+                    type="date"
+                    value={batchEditForm.dateend}
+                    onChange={(e) => setBatchEditForm(prev => ({ ...prev, dateend: e.target.value }))}
+                    min={batchEditForm.datestart || undefined}
+                    disabled={!batchEditForm.datestart}
+                  />
+                  {!batchEditForm.datestart && (
+                    <p className="text-sm text-red-500">Pilih tanggal mulai terlebih dahulu</p>
+                  )}
+                  {batchEditForm.datestart && batchEditForm.dateend && new Date(batchEditForm.dateend) < new Date(batchEditForm.datestart) && (
+                    <p className="text-sm text-red-500">Tanggal selesai harus setelah tanggal mulai</p>
+                  )}
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="batch-txtsales">Nama Sales</Label>
+                <Input
+                  id="batch-txtsales"
+                  value={batchEditForm.txtsales}
+                  onChange={(e) => setBatchEditForm(prev => ({ ...prev, txtsales: e.target.value }))}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="batch-lnkreport">Link Report</Label>
+                <Input
+                  id="batch-lnkreport"
+                  value={batchEditForm.lnkreport}
+                  onChange={(e) => setBatchEditForm(prev => ({ ...prev, lnkreport: e.target.value }))}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="batch-txtnotes">Catatan</Label>
+                <Textarea
+                  id="batch-txtnotes"
+                  value={batchEditForm.txtnotes}
+                  onChange={(e) => setBatchEditForm(prev => ({ ...prev, txtnotes: e.target.value }))}
+                  rows={3}
+                />
+              </div>
+            </div>
+
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setBatchEditDialogOpen(false)}>
+                Batal
+              </Button>
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button 
+                    disabled={batchLoading || (batchEditForm.datestart && batchEditForm.dateend && new Date(batchEditForm.dateend) < new Date(batchEditForm.datestart))}
+                  >
+                    {batchLoading ? "Loading..." : "Update"}
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Konfirmasi Update Batch</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      Apakah Anda yakin ingin menyimpan perubahan pada {selectedRentals.length} data sewa?
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Batal</AlertDialogCancel>
+                    <AlertDialogAction
+                      onClick={async () => {
+                        await handleBatchUpdate();
+                        setBatchEditDialogOpen(false);
+                      }}
+                    >
+                      Ya, Simpan
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
 
         {/* Pagination Component */}
         {totalPages > 0 && (

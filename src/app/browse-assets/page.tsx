@@ -300,7 +300,7 @@ export default function BrowseAssetsPage() {
             onPageChange={setCurrentPage}
             onItemsPerPageChange={setItemsPerPage}
             showItemsPerPageSelector={true}
-            itemsPerPageOptions={[10, 20, 50, 100]}
+            itemsPerPageOptions={[10, 20, 50]}
           />
         </div>
       )}
@@ -389,11 +389,11 @@ export default function BrowseAssetsPage() {
                       </table>
                     </div>
                     <div>
-                      <div className="w-full h-full">
+                      <div className="w-auto h-auto">
                         <img 
                           src={selectedAsset.lnkMockup} 
                           alt={selectedAsset.txtDesc && selectedAsset.txtCode }
-                          className="h-full w-full"
+                          className="h-auto w-auto"
                         />
                       </div>
                     </div>
@@ -442,16 +442,14 @@ export default function BrowseAssetsPage() {
                             <TableCell>
                               <div>
                                 <p className="font-medium">{rental.client.txtClient}</p>
-                                {rental.client.txtCompany && (
-                                  <p className="text-sm text-gray-500">{rental.client.txtCompany}</p>
-                                )}
+                              
                               </div>
                             </TableCell>
                             <TableCell>
-                              <div className="text-sm">
-                                <p>{format(new Date(rental.datestart), 'dd MMM yyyy')}</p>
-                                <p className="text-gray-500">s/d</p>
-                                <p>{format(new Date(rental.dateend), 'dd MMM yyyy')}</p>
+                              <div className="text-xs">
+                                <p>{format(new Date(rental.datestart), 'dd/MM/yy')}</p>
+                                <p className="text-gray-500">-</p>
+                                <p>{format(new Date(rental.dateend), 'dd/MM/yy')}</p>
                               </div>
                             </TableCell>
                             <TableCell>
