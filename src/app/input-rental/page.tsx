@@ -76,6 +76,7 @@ export default function InputRentalPage() {
   ])
   
   const [loading, setLoading] = useState(false)
+  const [digitalStationsLoading, setDigitalStationsLoading] = useState(false)
   const [error, setError] = useState("")
   const [success, setSuccess] = useState("")
   const [clientSearch, setClientSearch] = useState("")
@@ -165,6 +166,16 @@ export default function InputRentalPage() {
     }
   }
 
+
+  // Update the Spinner component to be more prominent
+  const Spinner = () => (
+    <div className="flex flex-col items-center justify-center py-6">
+      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mb-2"></div>
+      <span className="text-sm text-gray-600">Memproses stasiun digital...</span>
+    </div>
+  );
+
+
   // Modified function to exclude digital screen assets
   const getAssetCodesByStation = (station: string) => {
     return assets
@@ -177,11 +188,20 @@ export default function InputRentalPage() {
       }))
   }
 
-  const handleDigitalStationChange = (station: string, checked: boolean) => {
-    if (checked) {
-      setSelectedDigitalStations(prev => [...prev, station])
-    } else {
-      setSelectedDigitalStations(prev => prev.filter(s => s !== station))
+ const handleDigitalStationChange = async (station: string, checked: boolean) => {
+    setDigitalStationsLoading(true);
+    
+    try {
+      // Simulate a small delay to show loading state
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      if (checked) {
+        setSelectedDigitalStations(prev => [...prev, station]);
+      } else {
+        setSelectedDigitalStations(prev => prev.filter(s => s !== station));
+      }
+    } finally {
+      setDigitalStationsLoading(false);
     }
   }
 
@@ -467,13 +487,15 @@ export default function InputRentalPage() {
               </div>
 
               {/* New Digital Card with Two Columns */}
+              <h3 className="text-lg font-semibold">Digital</h3>
               <Card className="p-4">
                 <CardHeader className="pb-3">
-                  <CardTitle className="text-lg">Digital</CardTitle>
                   <CardDescription>Pilih stasiun dengan digital screen</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  {digitalStations.length > 0 ? (
+                  {digitalStationsLoading ? (
+                    <Spinner />
+                  ) : digitalStations.length > 0 ? (
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                       {digitalStations.map(station => (
                         <div key={station} className="flex items-center space-x-2">
@@ -483,22 +505,26 @@ export default function InputRentalPage() {
                             onCheckedChange={(checked) => 
                               handleDigitalStationChange(station, checked as boolean)
                             }
+                            disabled={digitalStationsLoading}
                           />
                           <Label htmlFor={`digital-${station}`} className="text-sm">
                             {station}
                           </Label>
+                          {selectedDigitalStations.includes(station) && (
+                            <Badge variant="secondary" className="ml-2">Selected</Badge>
+                          )}
                         </div>
                       ))}
                     </div>
                   ) : (
-                    <p className="text-sm text-gray-500">Tidak ada stasiun dengan digital screen</p>
+                    <p className="text-sm text-gray-500">...</p>
                   )}
                 </CardContent>
               </Card>
 
               <div className="space-y-4">
                 <div className="flex justify-between items-center">
-                  <h3 className="text-lg font-semibold">Asset(s)</h3>
+                  <h3 className="text-lg font-semibold">Static</h3>
                   {/* <Button type="button" variant="outline" size="sm" onClick={addAsset}>
                     <Plus className="w-4 h-4 mr-2" />
                     Tambah Asset
